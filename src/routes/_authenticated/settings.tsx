@@ -35,7 +35,7 @@ function Settings() {
   const save = useMutation({
     mutationFn: async () => {
       const { user_id, created_at, updated_at, onboarding_complete, ...patch } = form;
-      const { error } = await supabase.from("profiles").update(patch).eq("user_id", profile!.user_id);
+      const { error } = await supabase.from("profiles").update(patch as any).eq("user_id", profile!.user_id);
       if (error) throw error;
     },
     onSuccess: () => { toast.success("Saved"); refetch(); },
@@ -44,7 +44,7 @@ function Settings() {
 
   const connectLinkedIn = async () => {
     try {
-      const { url } = await getAuthUrl({ data: {} });
+      const { url } = await getAuthUrl();
       window.location.href = url;
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "LinkedIn not configured");
