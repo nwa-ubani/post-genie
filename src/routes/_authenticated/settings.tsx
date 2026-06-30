@@ -1,0 +1,132 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { toast } from "sonner";
+import { useServerFn } from "@tanstack/react-start";
+import { getLinkedInAuthUrl } from "@/lib/linkedin.functions";
+
+export const Route = createFileRoute("/_authenticated/settings")({
+  component: Settings,
+});
+
+function Settings() {
+  const getAuthUrl = useServerFn(getLinkedInAuthUrl);
+  const { data: profile, refetch } = useQuery({
+    queryKey: ["profile"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("profiles").select("*").single();
+      if (error) throw error;
+      return data;
+    },
+  });
+  const { data: tokens } = useQuery({
+    queryKey: ["linkedin_tokens"],
+    queryFn: async () => (await supabase.from("linkedin_tokens").select("*").maybeSingle()).data,
+  });
+
+  const [form, setForm] = useState<Record<string, any>>({});
+  useEffect(() => { if (profile) setForm(profile); }, [profile]);
+
+  const save = useMutation({
+    mutationFn: async () => {
+      const { user_id, created_at, updated_at, onboarding_complete, ...patch } = form;
+      const { error } = await supabase.from("profiles").update(patch as any).eq("user_id", profile!.user_id);
+      if (error) throw error;
+    },
+    onSuccess: () => { toast.success("Saved"); refetch(); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const connectLinkedIn = async () => {
+    try {
+      const { url } = await getAuthUrl();
+      window.location.href = url;
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "LinkedIn not configured");
+    }
+  };
+
+  const disconnectLinkedIn = async () => {
+    await supabase.from("linkedin_tokens").delete().eq("user_id", profile!.user_id);
+    toast.success("Disconnected");
+  };
+
+  if (!profile) return null;
+
+  return (
+    <div className="mx-auto max-w-2xl space-y-12">
+      <div>
+        <h1 className="font-display text-4xl">Settings</h1>
+        <p className="mt-1 text-muted-foreground">Edit your brief, schedule, and integrations.</p>
+      </div>
+
+      <section className="space-y-4">
+        <h2 className="font-display text-xl">LinkedIn</h2>
+        {tokens ? (
+          <div className="flex items-center justify-between rounded-xl border bg-card p-4">
+            <div>
+              <p className="text-sm font-medium">{tokens.linkedin_name ?? "Connected"}</p>
+              <p className="text-xs text-muted-foreground">Personal profile posting enabled</p>
+            </div>
+            <Button variant="outline" onClick={disconnectLinkedIn}>Disconnect</Button>
+          </div>
+        ) : (
+          <Button onClick={connectLinkedIn}>Connect LinkedIn</Button>
+        )}
+      </section>
+
+      <section className="space-y-4">
+        <h2 className="font-display text-xl">Brief</h2>
+        {[
+          ["name", "Name"], ["role", "Role"], ["company", "Company"], ["industry", "Industry"],
+        ].map(([k, label]) => (
+          <div key={k} className="space-y-1.5">
+            <Label>{label}</Label>
+            <Input value={form[k] ?? ""} onChange={(e) => setForm({ ...form, [k]: e.target.value })} />
+          </div>
+        ))}
+        <div className="space-y-1.5">
+          <Label>Company description</Label>
+          <Textarea rows={4} value={form.description ?? ""} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+        </div>
+        <div className="space-y-1.5">
+          <Label>Tone</Label>
+          <Input value={form.tone ?? ""} onChange={(e) => setForm({ ...form, tone: e.target.value })} />
+        </div>
+        <div className="space-y-1.5">
+          <Label>Admired brands (comma-separated)</Label>
+          <Input value={(form.admired_brands ?? []).join(", ")} onChange={(e) => setForm({ ...form, admired_brands: e.target.value.split(",").map((s: string) => s.trim()).filter(Boolean) })} />
+        </div>
+        <div className="space-y-1.5">
+          <Label>Content topics (comma-separated)</Label>
+          <Input value={(form.content_topics ?? []).join(", ")} onChange={(e) => setForm({ ...form, content_topics: e.target.value.split(",").map((s: string) => s.trim()).filter(Boolean) })} />
+        </div>
+      </section>
+
+      <section className="space-y-4">
+        <h2 className="font-display text-xl">Schedule</h2>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-1.5">
+            <Label>Posting time</Label>
+            <Input type="time" value={form.posting_time ?? ""} onChange={(e) => setForm({ ...form, posting_time: e.target.value })} />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Timezone</Label>
+            <Input value={form.timezone ?? ""} onChange={(e) => setForm({ ...form, timezone: e.target.value })} />
+          </div>
+        </div>
+        <div className="space-y-1.5">
+          <Label>Make.com webhook URL <span className="text-xs text-muted-foreground">(for company-page handoff)</span></Label>
+          <Input value={form.make_webhook_url ?? ""} onChange={(e) => setForm({ ...form, make_webhook_url: e.target.value })} placeholder="https://hook.make.com/…" />
+        </div>
+      </section>
+
+      <Button onClick={() => save.mutate()} disabled={save.isPending}>Save changes</Button>
+    </div>
+  );
+}
