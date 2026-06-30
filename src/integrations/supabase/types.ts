@@ -14,16 +14,244 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      linkedin_tokens: {
+        Row: {
+          access_token: string
+          created_at: string
+          expires_at: string | null
+          linkedin_member_urn: string | null
+          linkedin_name: string | null
+          refresh_token: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          access_token: string
+          created_at?: string
+          expires_at?: string | null
+          linkedin_member_urn?: string | null
+          linkedin_name?: string | null
+          refresh_token?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          access_token?: string
+          created_at?: string
+          expires_at?: string | null
+          linkedin_member_urn?: string | null
+          linkedin_name?: string | null
+          refresh_token?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      photos: {
+        Row: {
+          created_at: string
+          file_path: string
+          id: string
+          last_used_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          file_path: string
+          id?: string
+          last_used_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          file_path?: string
+          id?: string
+          last_used_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      posts: {
+        Row: {
+          content: string
+          created_at: string
+          error: string | null
+          id: string
+          keyword_hook: string | null
+          linkedin_post_urn: string | null
+          photo_id: string | null
+          post_type: Database["public"]["Enums"]["post_type"]
+          published_at: string | null
+          scheduled_for: string | null
+          serper_data: Json | null
+          status: Database["public"]["Enums"]["post_status"]
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          error?: string | null
+          id?: string
+          keyword_hook?: string | null
+          linkedin_post_urn?: string | null
+          photo_id?: string | null
+          post_type: Database["public"]["Enums"]["post_type"]
+          published_at?: string | null
+          scheduled_for?: string | null
+          serper_data?: Json | null
+          status?: Database["public"]["Enums"]["post_status"]
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          error?: string | null
+          id?: string
+          keyword_hook?: string | null
+          linkedin_post_urn?: string | null
+          photo_id?: string | null
+          post_type?: Database["public"]["Enums"]["post_type"]
+          published_at?: string | null
+          scheduled_for?: string | null
+          serper_data?: Json | null
+          status?: Database["public"]["Enums"]["post_status"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "posts_photo_id_fkey"
+            columns: ["photo_id"]
+            isOneToOne: false
+            referencedRelation: "photos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          active: boolean
+          admired_brands: string[] | null
+          company: string | null
+          content_topics: string[] | null
+          created_at: string
+          description: string | null
+          industry: string | null
+          linkedin_company_url: string | null
+          make_webhook_url: string | null
+          name: string | null
+          onboarding_complete: boolean
+          post_targets: string[] | null
+          posting_time: string | null
+          role: string | null
+          timezone: string | null
+          tone: string | null
+          twitter_handle: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          active?: boolean
+          admired_brands?: string[] | null
+          company?: string | null
+          content_topics?: string[] | null
+          created_at?: string
+          description?: string | null
+          industry?: string | null
+          linkedin_company_url?: string | null
+          make_webhook_url?: string | null
+          name?: string | null
+          onboarding_complete?: boolean
+          post_targets?: string[] | null
+          posting_time?: string | null
+          role?: string | null
+          timezone?: string | null
+          tone?: string | null
+          twitter_handle?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          active?: boolean
+          admired_brands?: string[] | null
+          company?: string | null
+          content_topics?: string[] | null
+          created_at?: string
+          description?: string | null
+          industry?: string | null
+          linkedin_company_url?: string | null
+          make_webhook_url?: string | null
+          name?: string | null
+          onboarding_complete?: boolean
+          post_targets?: string[] | null
+          posting_time?: string | null
+          role?: string | null
+          timezone?: string | null
+          tone?: string | null
+          twitter_handle?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      search_cache: {
+        Row: {
+          fetched_at: string
+          id: string
+          query: string
+          results: Json
+          user_id: string
+        }
+        Insert: {
+          fetched_at?: string
+          id?: string
+          query: string
+          results: Json
+          user_id: string
+        }
+        Update: {
+          fetched_at?: string
+          id?: string
+          query?: string
+          results?: Json
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "user"
+      post_status: "pending" | "published" | "failed" | "draft"
+      post_type: "brand" | "personal"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +378,10 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "user"],
+      post_status: ["pending", "published", "failed", "draft"],
+      post_type: ["brand", "personal"],
+    },
   },
 } as const
