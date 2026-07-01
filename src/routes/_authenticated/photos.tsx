@@ -7,6 +7,17 @@ import { toast } from "sonner";
 import { Trash2, Upload } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/photos")({
+  head: () => ({
+    meta: [
+      { title: "Photos — GrowNowNow" },
+      { name: "description", content: "Upload and manage the headshots and product photos GrowNowNow attaches to your daily LinkedIn posts." },
+      { property: "og:title", content: "Photos — GrowNowNow" },
+      { property: "og:description", content: "Upload and manage the images used in your daily LinkedIn posts." },
+      { property: "og:url", content: "https://autopost.grownownow.com/photos" },
+      { name: "robots", content: "noindex" },
+    ],
+    links: [{ rel: "canonical", href: "https://autopost.grownownow.com/photos" }],
+  }),
   component: Photos,
 });
 
