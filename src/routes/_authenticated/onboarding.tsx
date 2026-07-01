@@ -30,7 +30,7 @@ function Onboarding() {
   const [brandsText, setBrandsText] = useState("");
   const [topicsText, setTopicsText] = useState("");
   const [saving, setSaving] = useState(false);
-  const total = 12;
+  const total = 11;
 
   const splitList = (s: string) => s.split(",").map((x) => x.trim()).filter(Boolean);
 
@@ -158,11 +158,6 @@ function Onboarding() {
         </Field>
       );
       case 11: return (
-        <Field title="Company page posting (optional)" subtitle="If you want posts auto-published to a LinkedIn company page too, paste your automation link here. Leave blank to skip.">
-          <Input value={draft.make_webhook_url ?? ""} onChange={(e) => set("make_webhook_url", e.target.value)} placeholder="Paste your automation link" />
-        </Field>
-      );
-      case 12: return (
         <Field title="Connect LinkedIn" subtitle="We'll post to your LinkedIn daily. Click below to authorize — takes 30 seconds.">
           <div />
         </Field>
@@ -180,11 +175,6 @@ function Onboarding() {
           <ArrowLeft className="mr-1 h-4 w-4" /> Back
         </Button>
         <div className="flex items-center gap-2">
-          {step === 11 && (
-            <Button variant="ghost" onClick={() => saveAndNext({ make_webhook_url: "" })} disabled={saving}>
-              Skip
-            </Button>
-          )}
           <Button onClick={() => saveAndNext()} disabled={saving}>
             {step === total ? "Finish" : "Continue"} <ArrowRight className="ml-1 h-4 w-4" />
           </Button>
