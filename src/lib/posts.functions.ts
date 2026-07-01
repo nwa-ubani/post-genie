@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { searchSerper } from "@/lib/serper.functions";
 import { generateBrandPost, generatePersonalPost } from "@/lib/gemini.functions";
-import { publishToLinkedIn } from "@/lib/linkedin.functions";
+import { publishToLinkedIn, publishImageToLinkedIn } from "@/lib/linkedin.functions";
 
 export async function runDailyForUser(opts: {
   userId: string;
@@ -10,60 +10,108 @@ export async function runDailyForUser(opts: {
   preview?: boolean;
 }) {
   const { userId, supabase, preview = false } = opts;
-  const { data: profile, error: pErr } = await supabase.from("profiles").select("*").eq("user_id", userId).single();
+
+  // Load profile
+  const { data: profile, error: pErr } = await supabase
+    .from("profiles")
+    .select("*")
+    .eq("user_id", userId)
+    .single();
   if (pErr || !profile) throw new Error("Profile not found");
 
-  const q1 = `${profile.industry} trends ${new Date().getFullYear()}`;
-  const q2 = profile.content_topics?.[0]
-    ? `${profile.content_topics[0]} ${profile.industry}`
-    : `${profile.company} ${profile.industry}`;
+  // Build Serper queries from profile
+  const industry = profile.industry ?? "marketing";
+  const topics = profile.content_topics?.length
+    ? profile.content_topics.join(" ")
+    : industry;
+  const q1 = `${topics} strategy ${new Date().getFullYear()}`;
+  const q2 = `${industry} brand retention engagement ${new Date().getFullYear()}`;
+
   const [r1, r2] = await Promise.all([searchSerper(q1), searchSerper(q2)]);
+
+  // Cache search results
   await supabase.from("search_cache").insert([
     { user_id: userId, query: q1, results: r1 },
     { user_id: userId, query: q2, results: r2 },
   ]);
 
-  const rotatingBrand = profile.admired_brands?.length
-    ? profile.admired_brands[Math.floor(Date.now() / 86400000) % profile.admired_brands.length]
-    : undefined;
+  // Rotate brands — use day-of-year to pick consistently within a day
+  const dayOfYear = Math.floor(
+    (Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000,
+  );
+  const brands = profile.admired_brands?.length ? profile.admired_brands : [];
+  const rotatingBrand = brands.length ? brands[dayOfYear % brands.length] : undefined;
 
+  // Generate both posts
   const [brand, personal] = await Promise.all([
     generateBrandPost(profile, r1, r2),
     generatePersonalPost(profile, r1, r2, rotatingBrand),
   ]);
 
-  // Pick a photo (not yesterday's)
-  const { data: photos } = await supabase.from("photos").select("*").eq("user_id", userId);
+  // Pick a photo — avoid yesterday's
+  const { data: photos } = await supabase
+    .from("photos")
+    .select("*")
+    .eq("user_id", userId);
+
   let photoId: string | null = null;
+  let photoPath: string | null = null;
+
   if (photos?.length) {
     const yesterday = Date.now() - 86400000;
-    const eligible = photos.filter((p: any) => !p.last_used_at || new Date(p.last_used_at).getTime() < yesterday);
-    const pick = (eligible.length ? eligible : photos)[Math.floor(Math.random() * (eligible.length || photos.length))];
+    const eligible = photos.filter(
+      (p: any) => !p.last_used_at || new Date(p.last_used_at).getTime() < yesterday,
+    );
+    const pool = eligible.length ? eligible : photos;
+    const pick = pool[Math.floor(Math.random() * pool.length)];
     photoId = pick.id;
-    await supabase.from("photos").update({ last_used_at: new Date().toISOString() }).eq("id", pick.id);
+    photoPath = pick.file_path;
+    if (!preview) {
+      await supabase
+        .from("photos")
+        .update({ last_used_at: new Date().toISOString() })
+        .eq("id", pick.id);
+    }
   }
 
   const now = new Date().toISOString();
 
-  // Insert brand post (status pending — handed off via Make.com)
-  const { data: brandRow } = await supabase.from("posts").insert({
-    user_id: userId, post_type: "brand", content: brand.content,
-    keyword_hook: brand.hook, serper_data: { q1, q2 },
-    scheduled_for: now, status: preview ? "draft" : "pending",
-  }).select().single();
+  // Insert posts as draft or pending
+  const { data: brandRow } = await supabase
+    .from("posts")
+    .insert({
+      user_id: userId,
+      post_type: "brand",
+      content: brand.content,
+      keyword_hook: brand.hook,
+      serper_data: { q1, q2 },
+      scheduled_for: now,
+      status: preview ? "draft" : "pending",
+    })
+    .select()
+    .single();
 
-  const { data: personalRow } = await supabase.from("posts").insert({
-    user_id: userId, post_type: "personal", content: personal.content,
-    photo_id: photoId, keyword_hook: personal.hook, serper_data: { q1, q2 },
-    scheduled_for: now, status: preview ? "draft" : "pending",
-  }).select().single();
+  const { data: personalRow } = await supabase
+    .from("posts")
+    .insert({
+      user_id: userId,
+      post_type: "personal",
+      content: personal.content,
+      photo_id: photoId,
+      keyword_hook: personal.hook,
+      serper_data: { q1, q2 },
+      scheduled_for: now,
+      status: preview ? "draft" : "pending",
+    })
+    .select()
+    .single();
 
-  if (preview) return { brand: brandRow, personal: personalRow };
+  if (preview) return { brand: brandRow, personal: personalRow, photoPath };
 
-  // Hand brand post to Make.com if configured
+  // --- Brand post: hand off to Make.com webhook ---
   if (profile.make_webhook_url) {
     try {
-      await fetch(profile.make_webhook_url, {
+      const webhookRes = await fetch(profile.make_webhook_url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -73,23 +121,74 @@ export async function runDailyForUser(opts: {
           scheduled_for: now,
         }),
       });
-      await supabase.from("posts").update({ status: "published", published_at: now }).eq("id", brandRow.id);
+      if (!webhookRes.ok) throw new Error(`Webhook ${webhookRes.status}`);
+      await supabase
+        .from("posts")
+        .update({ status: "published", published_at: now })
+        .eq("id", brandRow.id);
     } catch (e) {
-      await supabase.from("posts").update({ status: "failed", error: e instanceof Error ? e.message : String(e) }).eq("id", brandRow.id);
+      await supabase
+        .from("posts")
+        .update({ status: "failed", error: e instanceof Error ? e.message : String(e) })
+        .eq("id", brandRow.id);
     }
   }
 
-  // Publish personal to LinkedIn
-  const { data: tokens } = await supabase.from("linkedin_tokens").select("*").eq("user_id", userId).maybeSingle();
+  // --- Personal post: publish to LinkedIn with image if available ---
+  const { data: tokens } = await supabase
+    .from("linkedin_tokens")
+    .select("*")
+    .eq("user_id", userId)
+    .maybeSingle();
+
   if (tokens?.access_token && tokens?.linkedin_member_urn) {
     try {
-      const { urn } = await publishToLinkedIn(tokens.access_token, tokens.linkedin_member_urn, personal.content);
-      await supabase.from("posts").update({ status: "published", published_at: now, linkedin_post_urn: urn }).eq("id", personalRow.id);
+      let urn = "";
+
+      if (photoPath) {
+        // Download photo from Supabase storage and upload to LinkedIn
+        const { data: fileData, error: dlErr } = await supabase.storage
+          .from("photos")
+          .download(photoPath);
+
+        if (dlErr || !fileData) throw new Error(`Could not download photo: ${dlErr?.message}`);
+
+        const imageBuffer = await fileData.arrayBuffer();
+        const result = await publishImageToLinkedIn(
+          tokens.access_token,
+          tokens.linkedin_member_urn,
+          personal.content,
+          imageBuffer,
+        );
+        urn = result.urn;
+      } else {
+        // No photo — fall back to text-only post
+        const result = await publishToLinkedIn(
+          tokens.access_token,
+          tokens.linkedin_member_urn,
+          personal.content,
+        );
+        urn = result.urn;
+      }
+
+      await supabase
+        .from("posts")
+        .update({ status: "published", published_at: now, linkedin_post_urn: urn })
+        .eq("id", personalRow.id);
     } catch (e) {
-      await supabase.from("posts").update({ status: "failed", error: e instanceof Error ? e.message : String(e) }).eq("id", personalRow.id);
+      await supabase
+        .from("posts")
+        .update({
+          status: "failed",
+          error: e instanceof Error ? e.message : String(e),
+        })
+        .eq("id", personalRow.id);
     }
   } else {
-    await supabase.from("posts").update({ status: "failed", error: "LinkedIn not connected" }).eq("id", personalRow.id);
+    await supabase
+      .from("posts")
+      .update({ status: "failed", error: "LinkedIn not connected" })
+      .eq("id", personalRow.id);
   }
 
   return { brand: brandRow, personal: personalRow };
@@ -99,5 +198,9 @@ export const runForCurrentUser = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: { preview?: boolean } | undefined) => d ?? {})
   .handler(async ({ data, context }) => {
-    return runDailyForUser({ userId: context.userId, supabase: context.supabase, preview: data.preview });
+    return runDailyForUser({
+      userId: context.userId,
+      supabase: context.supabase,
+      preview: data.preview,
+    });
   });
