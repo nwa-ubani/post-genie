@@ -11,6 +11,17 @@ import { useServerFn } from "@tanstack/react-start";
 import { getLinkedInAuthUrl } from "@/lib/linkedin.functions";
 
 export const Route = createFileRoute("/_authenticated/settings")({
+  head: () => ({
+    meta: [
+      { title: "Settings — GrowNowNow" },
+      { name: "description", content: "Edit your brief, tone, posting schedule and reconnect LinkedIn for GrowNowNow's daily posting automation." },
+      { property: "og:title", content: "Settings — GrowNowNow" },
+      { property: "og:description", content: "Edit your brief, tone, posting schedule and reconnect LinkedIn." },
+      { property: "og:url", content: "https://autopost.grownownow.com/settings" },
+      { name: "robots", content: "noindex" },
+    ],
+    links: [{ rel: "canonical", href: "https://autopost.grownownow.com/settings" }],
+  }),
   component: Settings,
 });
 

@@ -6,7 +6,11 @@ export const Route = createFileRoute("/")({
     meta: [
       { title: "GrowNowNow — Daily LinkedIn posts on autopilot" },
       { name: "description", content: "Researches your industry with live Google data, writes two AI posts daily, and publishes to LinkedIn for you." },
+      { property: "og:title", content: "GrowNowNow — Daily LinkedIn posts on autopilot" },
+      { property: "og:description", content: "Live Google research plus AI drafting — a brand post and a personal post, published to LinkedIn every day." },
+      { property: "og:url", content: "https://autopost.grownownow.com/" },
     ],
+    links: [{ rel: "canonical", href: "https://autopost.grownownow.com/" }],
   }),
   component: Landing,
 });
@@ -46,7 +50,7 @@ function Landing() {
           ].map((f) => (
             <div key={f.title} className="rounded-2xl border bg-card p-6">
               <f.icon className="h-5 w-5 text-accent" />
-              <h3 className="mt-4 font-display text-xl">{f.title}</h3>
+              <h2 className="mt-4 font-display text-xl">{f.title}</h2>
               <p className="mt-2 text-sm text-muted-foreground">{f.body}</p>
             </div>
           ))}

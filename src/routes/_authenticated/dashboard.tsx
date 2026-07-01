@@ -11,6 +11,17 @@ import { useServerFn } from "@tanstack/react-start";
 import { Loader2, ExternalLink } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
+  head: () => ({
+    meta: [
+      { title: "Dashboard — GrowNowNow" },
+      { name: "description", content: "See today's LinkedIn posts, run automation on demand, and review recent activity in your GrowNowNow dashboard." },
+      { property: "og:title", content: "Dashboard — GrowNowNow" },
+      { property: "og:description", content: "See today's LinkedIn posts and run automation on demand." },
+      { property: "og:url", content: "https://autopost.grownownow.com/dashboard" },
+      { name: "robots", content: "noindex" },
+    ],
+    links: [{ rel: "canonical", href: "https://autopost.grownownow.com/dashboard" }],
+  }),
   component: Dashboard,
 });
 
@@ -76,7 +87,7 @@ function Dashboard() {
         </div>
         <div className="flex items-center gap-3 rounded-full border bg-card px-4 py-2">
           <span className="text-sm">{profile.active ? "Active" : "Paused"}</span>
-          <Switch checked={profile.active} onCheckedChange={(v) => toggleActive.mutate(v)} />
+          <Switch checked={profile.active} onCheckedChange={(v) => toggleActive.mutate(v)} aria-label="Toggle automation active" />
         </div>
       </div>
 

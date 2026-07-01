@@ -7,6 +7,17 @@ import { toast } from "sonner";
 import { Trash2, Upload } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/photos")({
+  head: () => ({
+    meta: [
+      { title: "Photos — GrowNowNow" },
+      { name: "description", content: "Upload and manage the headshots and product photos GrowNowNow attaches to your daily LinkedIn posts." },
+      { property: "og:title", content: "Photos — GrowNowNow" },
+      { property: "og:description", content: "Upload and manage the images used in your daily LinkedIn posts." },
+      { property: "og:url", content: "https://autopost.grownownow.com/photos" },
+      { name: "robots", content: "noindex" },
+    ],
+    links: [{ rel: "canonical", href: "https://autopost.grownownow.com/photos" }],
+  }),
   component: Photos,
 });
 
@@ -81,7 +92,7 @@ function Photos() {
             {urls[p.id] ? (
               <img src={urls[p.id]} alt="" className="aspect-square w-full object-cover" />
             ) : <div className="aspect-square bg-muted" />}
-            <Button size="icon" variant="destructive" className="absolute right-2 top-2 opacity-0 transition group-hover:opacity-100"
+            <Button size="icon" variant="destructive" aria-label="Delete photo" className="absolute right-2 top-2 opacity-0 transition group-hover:opacity-100"
               onClick={() => del.mutate({ id: p.id, file_path: p.file_path })}>
               <Trash2 className="h-4 w-4" />
             </Button>
