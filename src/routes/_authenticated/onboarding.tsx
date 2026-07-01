@@ -179,9 +179,16 @@ function Onboarding() {
         <Button variant="ghost" onClick={back} disabled={step === 1}>
           <ArrowLeft className="mr-1 h-4 w-4" /> Back
         </Button>
-        <Button onClick={() => saveAndNext()} disabled={saving}>
-          {step === total ? "Finish" : "Continue"} <ArrowRight className="ml-1 h-4 w-4" />
-        </Button>
+        <div className="flex items-center gap-2">
+          {step === 11 && (
+            <Button variant="ghost" onClick={() => saveAndNext({ make_webhook_url: "" })} disabled={saving}>
+              Skip
+            </Button>
+          )}
+          <Button onClick={() => saveAndNext()} disabled={saving}>
+            {step === total ? "Finish" : "Continue"} <ArrowRight className="ml-1 h-4 w-4" />
+          </Button>
+        </div>
       </div>
     </div>
   );
