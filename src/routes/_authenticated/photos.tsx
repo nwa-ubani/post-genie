@@ -81,7 +81,7 @@ function Photos() {
             {urls[p.id] ? (
               <img src={urls[p.id]} alt="" className="aspect-square w-full object-cover" />
             ) : <div className="aspect-square bg-muted" />}
-            <Button size="icon" variant="destructive" className="absolute right-2 top-2 opacity-0 transition group-hover:opacity-100"
+            <Button size="icon" variant="destructive" aria-label="Delete photo" className="absolute right-2 top-2 opacity-0 transition group-hover:opacity-100"
               onClick={() => del.mutate({ id: p.id, file_path: p.file_path })}>
               <Trash2 className="h-4 w-4" />
             </Button>
