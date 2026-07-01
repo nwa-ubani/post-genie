@@ -28,7 +28,10 @@ function AuthPage() {
   const [mode, setMode] = useState<"signin" | "signup">("signup");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  const passwordError = mode === "signup" && password.length > 0 ? validatePassword(password) : null;
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -38,6 +41,10 @@ function AuthPage() {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (mode === "signup") {
+      const err = validatePassword(password);
+      if (err) { toast.error(err); return; }
+    }
     setLoading(true);
     try {
       if (mode === "signup") {
@@ -54,7 +61,12 @@ function AuthPage() {
         navigate({ to: "/dashboard" });
       }
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Authentication failed");
+      const msg = e instanceof Error ? e.message : "Authentication failed";
+      if (/pwned|leaked|weak|compromis/i.test(msg)) {
+        toast.error("That password has appeared in a known data breach. Please pick a different one.");
+      } else {
+        toast.error(msg);
+      }
     } finally { setLoading(false); }
   };
 
