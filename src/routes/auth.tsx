@@ -1,11 +1,22 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { Eye, EyeOff } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+
+const PASSWORD_MIN = 8;
+function validatePassword(pw: string): string | null {
+  if (pw.length < PASSWORD_MIN) return `Password must be at least ${PASSWORD_MIN} characters.`;
+  if (!/[A-Z]/.test(pw)) return "Include at least one uppercase letter.";
+  if (!/[a-z]/.test(pw)) return "Include at least one lowercase letter.";
+  if (!/[0-9]/.test(pw)) return "Include at least one number.";
+  if (!/[^A-Za-z0-9]/.test(pw)) return "Include at least one symbol (e.g. !@#$).";
+  return null;
+}
 
 export const Route = createFileRoute("/auth")({
   head: () => ({ meta: [{ title: "Sign in — GrowNowNow" }] }),
