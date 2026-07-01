@@ -54,6 +54,8 @@ function Onboarding() {
         timezone: existing.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone,
         make_webhook_url: existing.make_webhook_url ?? "",
       });
+      setBrandsText((existing.admired_brands ?? []).join(", "));
+      setTopicsText((existing.content_topics ?? []).join(", "));
     }
   }, [existing]);
 
