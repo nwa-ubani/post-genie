@@ -13,6 +13,7 @@ import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as BlogAutomateLinkedinPostsWithAiRouteImport } from './routes/blog.automate-linkedin-posts-with-ai'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthenticatedPreviewRouteImport } from './routes/_authenticated/preview'
 import { Route as AuthenticatedPhotosRouteImport } from './routes/_authenticated/photos'
@@ -40,6 +41,12 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const BlogAutomateLinkedinPostsWithAiRoute =
+  BlogAutomateLinkedinPostsWithAiRouteImport.update({
+    id: '/blog/automate-linkedin-posts-with-ai',
+    path: '/blog/automate-linkedin-posts-with-ai',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
@@ -85,6 +92,7 @@ export interface FileRoutesByFullPath {
   '/photos': typeof AuthenticatedPhotosRoute
   '/preview': typeof AuthenticatedPreviewRoute
   '/settings': typeof AuthenticatedSettingsRoute
+  '/blog/automate-linkedin-posts-with-ai': typeof BlogAutomateLinkedinPostsWithAiRoute
   '/auth/linkedin/callback': typeof AuthLinkedinCallbackRoute
   '/api/public/cron/daily-posts': typeof ApiPublicCronDailyPostsRoute
 }
@@ -97,6 +105,7 @@ export interface FileRoutesByTo {
   '/photos': typeof AuthenticatedPhotosRoute
   '/preview': typeof AuthenticatedPreviewRoute
   '/settings': typeof AuthenticatedSettingsRoute
+  '/blog/automate-linkedin-posts-with-ai': typeof BlogAutomateLinkedinPostsWithAiRoute
   '/auth/linkedin/callback': typeof AuthLinkedinCallbackRoute
   '/api/public/cron/daily-posts': typeof ApiPublicCronDailyPostsRoute
 }
@@ -111,6 +120,7 @@ export interface FileRoutesById {
   '/_authenticated/photos': typeof AuthenticatedPhotosRoute
   '/_authenticated/preview': typeof AuthenticatedPreviewRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
+  '/blog/automate-linkedin-posts-with-ai': typeof BlogAutomateLinkedinPostsWithAiRoute
   '/auth/linkedin/callback': typeof AuthLinkedinCallbackRoute
   '/api/public/cron/daily-posts': typeof ApiPublicCronDailyPostsRoute
 }
@@ -125,6 +135,7 @@ export interface FileRouteTypes {
     | '/photos'
     | '/preview'
     | '/settings'
+    | '/blog/automate-linkedin-posts-with-ai'
     | '/auth/linkedin/callback'
     | '/api/public/cron/daily-posts'
   fileRoutesByTo: FileRoutesByTo
@@ -137,6 +148,7 @@ export interface FileRouteTypes {
     | '/photos'
     | '/preview'
     | '/settings'
+    | '/blog/automate-linkedin-posts-with-ai'
     | '/auth/linkedin/callback'
     | '/api/public/cron/daily-posts'
   id:
@@ -150,6 +162,7 @@ export interface FileRouteTypes {
     | '/_authenticated/photos'
     | '/_authenticated/preview'
     | '/_authenticated/settings'
+    | '/blog/automate-linkedin-posts-with-ai'
     | '/auth/linkedin/callback'
     | '/api/public/cron/daily-posts'
   fileRoutesById: FileRoutesById
@@ -159,6 +172,7 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRouteWithChildren
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
+  BlogAutomateLinkedinPostsWithAiRoute: typeof BlogAutomateLinkedinPostsWithAiRoute
   ApiPublicCronDailyPostsRoute: typeof ApiPublicCronDailyPostsRoute
 }
 
@@ -190,6 +204,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/blog/automate-linkedin-posts-with-ai': {
+      id: '/blog/automate-linkedin-posts-with-ai'
+      path: '/blog/automate-linkedin-posts-with-ai'
+      fullPath: '/blog/automate-linkedin-posts-with-ai'
+      preLoaderRoute: typeof BlogAutomateLinkedinPostsWithAiRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/settings': {
@@ -278,6 +299,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRouteWithChildren,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
+  BlogAutomateLinkedinPostsWithAiRoute: BlogAutomateLinkedinPostsWithAiRoute,
   ApiPublicCronDailyPostsRoute: ApiPublicCronDailyPostsRoute,
 }
 export const routeTree = rootRouteImport
