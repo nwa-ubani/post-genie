@@ -6,7 +6,11 @@ export const Route = createFileRoute("/")({
     meta: [
       { title: "GrowNowNow — Daily LinkedIn posts on autopilot" },
       { name: "description", content: "Researches your industry with live Google data, writes two AI posts daily, and publishes to LinkedIn for you." },
+      { property: "og:title", content: "GrowNowNow — Daily LinkedIn posts on autopilot" },
+      { property: "og:description", content: "Live Google research plus AI drafting — a brand post and a personal post, published to LinkedIn every day." },
+      { property: "og:url", content: "https://autopost.grownownow.com/" },
     ],
+    links: [{ rel: "canonical", href: "https://autopost.grownownow.com/" }],
   }),
   component: Landing,
 });
