@@ -136,16 +136,16 @@ function Onboarding() {
         </Field>
       );
       case 8: return (
-        <Field title="Brands you admire" subtitle="Comma-separated. We'll rotate one in each personal post.">
-          <Input value={(draft.admired_brands ?? []).join(", ")}
-            onChange={(e) => set("admired_brands", e.target.value.split(",").map(s => s.trim()).filter(Boolean))}
+        <Field title="Brands you admire" subtitle="Separate with commas. We'll rotate one in each personal post.">
+          <Input value={brandsText}
+            onChange={(e) => setBrandsText(e.target.value)}
             placeholder="Linear, Stripe, Notion" />
         </Field>
       );
       case 9: return (
-        <Field title="Topics to cover" subtitle="Comma-separated themes you want to be known for.">
-          <Input value={(draft.content_topics ?? []).join(", ")}
-            onChange={(e) => set("content_topics", e.target.value.split(",").map(s => s.trim()).filter(Boolean))}
+        <Field title="Topics to cover" subtitle="Separate with commas. Themes you want to be known for.">
+          <Input value={topicsText}
+            onChange={(e) => setTopicsText(e.target.value)}
             placeholder="AI in sales, founder lessons, hiring" />
         </Field>
       );
@@ -158,16 +158,13 @@ function Onboarding() {
         </Field>
       );
       case 11: return (
-        <Field title="Make.com webhook" subtitle="Optional. We POST your brand post here so you can route it to a company page.">
-          <Input value={draft.make_webhook_url ?? ""} onChange={(e) => set("make_webhook_url", e.target.value)} placeholder="https://hook.make.com/…" />
+        <Field title="Company page posting (optional)" subtitle="If you want posts auto-published to a LinkedIn company page too, paste your automation link here. Leave blank to skip.">
+          <Input value={draft.make_webhook_url ?? ""} onChange={(e) => set("make_webhook_url", e.target.value)} placeholder="Paste your automation link" />
         </Field>
       );
       case 12: return (
-        <Field title="Connect LinkedIn" subtitle="We post your personal post automatically. You can connect now or from Settings.">
-          <div className="rounded-xl border bg-card p-5 text-sm text-muted-foreground">
-            LinkedIn OAuth will appear in <span className="text-foreground">Settings</span> once your API keys are configured.
-            For now, finish onboarding and we'll show you a live preview of your first day.
-          </div>
+        <Field title="Connect LinkedIn" subtitle="We'll post to your LinkedIn daily. Click below to authorize — takes 30 seconds.">
+          <div />
         </Field>
       );
     }
