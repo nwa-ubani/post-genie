@@ -2,3 +2,5 @@ User-agent: *
 Allow: /
 Disallow: /api/
 Disallow: /_authenticated/
+
+Sitemap: https://autopost.grownownow.com/sitemap.xml
