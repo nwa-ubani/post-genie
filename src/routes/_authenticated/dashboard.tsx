@@ -11,6 +11,17 @@ import { useServerFn } from "@tanstack/react-start";
 import { Loader2, ExternalLink } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
+  head: () => ({
+    meta: [
+      { title: "Dashboard — GrowNowNow" },
+      { name: "description", content: "See today's LinkedIn posts, run automation on demand, and review recent activity in your GrowNowNow dashboard." },
+      { property: "og:title", content: "Dashboard — GrowNowNow" },
+      { property: "og:description", content: "See today's LinkedIn posts and run automation on demand." },
+      { property: "og:url", content: "https://autopost.grownownow.com/dashboard" },
+      { name: "robots", content: "noindex" },
+    ],
+    links: [{ rel: "canonical", href: "https://autopost.grownownow.com/dashboard" }],
+  }),
   component: Dashboard,
 });
 
