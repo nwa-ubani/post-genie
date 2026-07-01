@@ -14,15 +14,22 @@ export async function searchSerper(query: string): Promise<SerperResult> {
   const r = await fetch("https://google.serper.dev/search", {
     method: "POST",
     headers: { "X-API-KEY": key, "Content-Type": "application/json" },
-    // tbs:"qdr:m" restricts results to the past month — keeps content fresh and current
+    // tbs:"qdr:m" restricts to past month — keeps results current
     body: JSON.stringify({ q: query, gl: "us", hl: "en", num: 10, tbs: "qdr:m" }),
   });
   if (!r.ok) throw new Error(`Serper ${r.status}`);
   const j = await r.json();
   return {
     query,
-    organic: (j.organic ?? []).slice(0, 8).map((o: any) => ({ title: o.title, snippet: o.snippet, link: o.link })),
-    peopleAlsoAsk: (j.peopleAlsoAsk ?? []).map((p: any) => ({ question: p.question, snippet: p.snippet })),
+    organic: (j.organic ?? []).slice(0, 8).map((o: any) => ({
+      title: o.title,
+      snippet: o.snippet,
+      link: o.link,
+    })),
+    peopleAlsoAsk: (j.peopleAlsoAsk ?? []).map((p: any) => ({
+      question: p.question,
+      snippet: p.snippet,
+    })),
     related: (j.relatedSearches ?? []).map((r: any) => r.query),
   };
 }
@@ -31,7 +38,11 @@ export const runSerperForProfile = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { supabase, userId } = context;
-    const { data: profile } = await supabase.from("profiles").select("*").eq("user_id", userId).single();
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("user_id", userId)
+      .single();
     if (!profile) throw new Error("Profile not found");
     const dayOfYear = Math.floor(
       (Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000,
@@ -45,42 +56,62 @@ export const runSerperForProfile = createServerFn({ method: "POST" })
     return { r1, r2 };
   });
 
+/**
+ * Build two Serper queries that are:
+ * 1. Driven by the user's actual content topics — not generic/hardcoded angles
+ * 2. Different every day via 6 rotating strategy templates
+ * 3. Personalised by industry, role, and admired brands
+ *
+ * A fitness coach with topics ["nutrition", "recovery"] gets completely different
+ * queries than a marketer with topics ["email marketing", "retention"].
+ */
 export function buildQueries(
-  profile: { industry?: string | null; content_topics?: string[] | null; admired_brands?: string[] | null; company?: string | null },
+  profile: {
+    industry?: string | null;
+    content_topics?: string[] | null;
+    admired_brands?: string[] | null;
+    role?: string | null;
+    company?: string | null;
+  },
   dayOfYear: number,
 ): { q1: string; q2: string } {
-  const industry = profile.industry ?? "marketing";
+  const industry = profile.industry ?? "business";
   const topics = profile.content_topics?.length ? profile.content_topics : [industry];
-  const primaryTopic = topics[dayOfYear % topics.length];
-  const secondaryTopic = topics[(dayOfYear + 1) % topics.length];
-  const brands = profile.admired_brands?.length ? profile.admired_brands : [];
-  const rotatingBrand = brands.length ? brands[dayOfYear % brands.length] : null;
 
-  // 6 strategies rotate by day — each gives Gemini genuinely different angles and PAA questions
-  const strategies = [
+  // Rotate through the user's own topics day by day
+  const primary = topics[dayOfYear % topics.length];
+  const secondary = topics[(dayOfYear + 1) % topics.length];
+
+  const brands = profile.admired_brands?.length ? profile.admired_brands : [];
+  const brand = brands.length ? brands[dayOfYear % brands.length] : null;
+
+  const role = profile.role ?? "expert";
+
+  // 6 strategy templates — all filled with the user's actual topics, not hardcoded angles
+  const strategies: { q1: string; q2: string }[] = [
     {
-      q1: `why do customers stop buying from ${industry} brands`,
-      q2: `${primaryTopic} what makes customers come back`,
+      q1: `${primary} mistakes people and businesses make`,
+      q2: `${primary} best practices in ${industry} right now`,
     },
     {
-      q1: `${primaryTopic} mistakes brands make losing customers`,
-      q2: `${industry} retention strategies that actually work`,
+      q1: `why ${primary} is changing in ${industry}`,
+      q2: `${secondary} questions ${industry} professionals are asking`,
     },
     {
-      q1: `${rotatingBrand ?? primaryTopic} marketing strategy how they keep customers`,
-      q2: `${industry} consumer psychology buying behaviour`,
+      q1: `${brand ? `how ${brand} approaches ${primary}` : `${primary} case study results`}`,
+      q2: `${industry} ${primary} what the data shows`,
     },
     {
-      q1: `how to increase customer lifetime value ${primaryTopic}`,
-      q2: `${secondaryTopic} brand loyalty what drives it`,
+      q1: `how to improve ${primary} step by step`,
+      q2: `${secondary} common problems and how to fix them`,
     },
     {
-      q1: `${primaryTopic} trends what top brands are doing differently`,
-      q2: `${industry} churn rate how to reduce it`,
+      q1: `${primary} trends in ${industry} this year`,
+      q2: `${industry} ${secondary} what experts say works`,
     },
     {
-      q1: `${primaryTopic} and ${secondaryTopic} examples that worked`,
-      q2: `${industry} brands growing fastest right now and why`,
+      q1: `${primary} real examples and lessons learned`,
+      q2: `${role} advice on ${primary} for ${industry}`,
     },
   ];
 
