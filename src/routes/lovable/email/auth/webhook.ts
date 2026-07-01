@@ -31,10 +31,11 @@ const EMAIL_TEMPLATES: Record<string, React.ComponentType<any>> = {
 }
 
 // Configuration
-const SITE_NAME = "grow-post-spark"
+const SITE_NAME = "GrowNowNow"
 const SENDER_DOMAIN = "notify.autopost.grownownow.com"
 const ROOT_DOMAIN = "autopost.grownownow.com"
 const FROM_DOMAIN = "autopost.grownownow.com"
+const REPLY_TO = "grownownow@gmail.com"
 
 function redactEmail(email: string | null | undefined): string {
   if (!email) return '***'
@@ -177,7 +178,8 @@ export const Route = createFileRoute("/lovable/email/auth/webhook")({
             run_id,
             message_id: messageId,
             to: payload.data.email,
-            from: `${SITE_NAME} <noreply@${FROM_DOMAIN}>`,
+            from: `${SITE_NAME} <notify@${FROM_DOMAIN}>`,
+            reply_to: REPLY_TO,
             sender_domain: SENDER_DOMAIN,
             subject: EMAIL_SUBJECTS[emailType] || 'Notification',
             html,
