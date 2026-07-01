@@ -27,8 +27,12 @@ function Onboarding() {
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [draft, setDraft] = useState<Profile>({});
+  const [brandsText, setBrandsText] = useState("");
+  const [topicsText, setTopicsText] = useState("");
   const [saving, setSaving] = useState(false);
   const total = 12;
+
+  const splitList = (s: string) => s.split(",").map((x) => x.trim()).filter(Boolean);
 
   const { data: existing } = useQuery({
     queryKey: ["profile"],
