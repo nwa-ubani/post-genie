@@ -20,6 +20,7 @@ import { Route as AuthenticatedPhotosRouteImport } from './routes/_authenticated
 import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authenticated/onboarding'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthLinkedinCallbackRouteImport } from './routes/auth.linkedin.callback'
+import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
 import { Route as ApiPublicCronDailyPostsRouteImport } from './routes/api/public/cron/daily-posts'
 
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
@@ -77,6 +78,12 @@ const AuthLinkedinCallbackRoute = AuthLinkedinCallbackRouteImport.update({
   path: '/linkedin/callback',
   getParentRoute: () => AuthRoute,
 } as any)
+const LovableEmailQueueProcessRoute =
+  LovableEmailQueueProcessRouteImport.update({
+    id: '/lovable/email/queue/process',
+    path: '/lovable/email/queue/process',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicCronDailyPostsRoute = ApiPublicCronDailyPostsRouteImport.update({
   id: '/api/public/cron/daily-posts',
   path: '/api/public/cron/daily-posts',
@@ -95,6 +102,7 @@ export interface FileRoutesByFullPath {
   '/blog/automate-linkedin-posts-with-ai': typeof BlogAutomateLinkedinPostsWithAiRoute
   '/auth/linkedin/callback': typeof AuthLinkedinCallbackRoute
   '/api/public/cron/daily-posts': typeof ApiPublicCronDailyPostsRoute
+  '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -108,6 +116,7 @@ export interface FileRoutesByTo {
   '/blog/automate-linkedin-posts-with-ai': typeof BlogAutomateLinkedinPostsWithAiRoute
   '/auth/linkedin/callback': typeof AuthLinkedinCallbackRoute
   '/api/public/cron/daily-posts': typeof ApiPublicCronDailyPostsRoute
+  '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -123,6 +132,7 @@ export interface FileRoutesById {
   '/blog/automate-linkedin-posts-with-ai': typeof BlogAutomateLinkedinPostsWithAiRoute
   '/auth/linkedin/callback': typeof AuthLinkedinCallbackRoute
   '/api/public/cron/daily-posts': typeof ApiPublicCronDailyPostsRoute
+  '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -138,6 +148,7 @@ export interface FileRouteTypes {
     | '/blog/automate-linkedin-posts-with-ai'
     | '/auth/linkedin/callback'
     | '/api/public/cron/daily-posts'
+    | '/lovable/email/queue/process'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -151,6 +162,7 @@ export interface FileRouteTypes {
     | '/blog/automate-linkedin-posts-with-ai'
     | '/auth/linkedin/callback'
     | '/api/public/cron/daily-posts'
+    | '/lovable/email/queue/process'
   id:
     | '__root__'
     | '/'
@@ -165,6 +177,7 @@ export interface FileRouteTypes {
     | '/blog/automate-linkedin-posts-with-ai'
     | '/auth/linkedin/callback'
     | '/api/public/cron/daily-posts'
+    | '/lovable/email/queue/process'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -174,6 +187,7 @@ export interface RootRouteChildren {
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   BlogAutomateLinkedinPostsWithAiRoute: typeof BlogAutomateLinkedinPostsWithAiRoute
   ApiPublicCronDailyPostsRoute: typeof ApiPublicCronDailyPostsRoute
+  LovableEmailQueueProcessRoute: typeof LovableEmailQueueProcessRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -255,6 +269,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthLinkedinCallbackRouteImport
       parentRoute: typeof AuthRoute
     }
+    '/lovable/email/queue/process': {
+      id: '/lovable/email/queue/process'
+      path: '/lovable/email/queue/process'
+      fullPath: '/lovable/email/queue/process'
+      preLoaderRoute: typeof LovableEmailQueueProcessRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/cron/daily-posts': {
       id: '/api/public/cron/daily-posts'
       path: '/api/public/cron/daily-posts'
@@ -301,6 +322,7 @@ const rootRouteChildren: RootRouteChildren = {
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   BlogAutomateLinkedinPostsWithAiRoute: BlogAutomateLinkedinPostsWithAiRoute,
   ApiPublicCronDailyPostsRoute: ApiPublicCronDailyPostsRoute,
+  LovableEmailQueueProcessRoute: LovableEmailQueueProcessRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
