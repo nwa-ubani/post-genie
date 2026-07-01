@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { searchSerper } from "@/lib/serper.functions";
+import { searchSerper, buildQueries } from "@/lib/serper.functions";
 import { generateBrandPost, generatePersonalPost } from "@/lib/gemini.functions";
 import { publishToLinkedIn, publishImageToLinkedIn } from "@/lib/linkedin.functions";
 
@@ -19,14 +19,17 @@ export async function runDailyForUser(opts: {
     .single();
   if (pErr || !profile) throw new Error("Profile not found");
 
-  // Build Serper queries from profile
-  const industry = profile.industry ?? "marketing";
-  const topics = profile.content_topics?.length
-    ? profile.content_topics.join(" ")
-    : industry;
-  const q1 = `${topics} strategy ${new Date().getFullYear()}`;
-  const q2 = `${industry} brand retention engagement ${new Date().getFullYear()}`;
+  // Day-of-year drives both brand rotation and query strategy rotation
+  const dayOfYear = Math.floor(
+    (Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000,
+  );
 
+  // Rotate brands consistently within the day
+  const brands = profile.admired_brands?.length ? profile.admired_brands : [];
+  const rotatingBrand = brands.length ? brands[dayOfYear % brands.length] : undefined;
+
+  // Build fresh, varied Serper queries
+  const { q1, q2 } = buildQueries(profile, dayOfYear);
   const [r1, r2] = await Promise.all([searchSerper(q1), searchSerper(q2)]);
 
   // Cache search results
@@ -35,14 +38,7 @@ export async function runDailyForUser(opts: {
     { user_id: userId, query: q2, results: r2 },
   ]);
 
-  // Rotate brands — use day-of-year to pick consistently within a day
-  const dayOfYear = Math.floor(
-    (Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000,
-  );
-  const brands = profile.admired_brands?.length ? profile.admired_brands : [];
-  const rotatingBrand = brands.length ? brands[dayOfYear % brands.length] : undefined;
-
-  // Generate both posts
+  // Generate both posts in parallel
   const [brand, personal] = await Promise.all([
     generateBrandPost(profile, r1, r2),
     generatePersonalPost(profile, r1, r2, rotatingBrand),
@@ -146,7 +142,6 @@ export async function runDailyForUser(opts: {
       let urn = "";
 
       if (photoPath) {
-        // Download photo from Supabase storage and upload to LinkedIn
         const { data: fileData, error: dlErr } = await supabase.storage
           .from("photos")
           .download(photoPath);
@@ -162,7 +157,6 @@ export async function runDailyForUser(opts: {
         );
         urn = result.urn;
       } else {
-        // No photo — fall back to text-only post
         const result = await publishToLinkedIn(
           tokens.access_token,
           tokens.linkedin_member_urn,
