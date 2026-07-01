@@ -7,8 +7,8 @@ type SerperLike = {
 };
 
 export async function geminiGenerate(prompt: string, systemPrompt?: string): Promise<string> {
-  const key = process.env.GEMINI_API_KEY;
-  if (!key) throw new Error("GEMINI_API_KEY not configured");
+  const key = process.env.GOOGLE_API_KEY;
+  if (!key) throw new Error("GOOGLE_API_KEY not configured");
 
   const body: any = {
     contents: [{ role: "user", parts: [{ text: prompt }] }],
