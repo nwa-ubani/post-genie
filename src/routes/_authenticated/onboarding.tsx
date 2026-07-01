@@ -64,7 +64,12 @@ function Onboarding() {
   const saveAndNext = async (patch: Partial<Profile> = {}) => {
     setSaving(true);
     try {
-      const merged = { ...draft, ...patch };
+      const merged: Profile = {
+        ...draft,
+        admired_brands: splitList(brandsText),
+        content_topics: splitList(topicsText),
+        ...patch,
+      };
       const { error } = await supabase.from("profiles").update(merged).eq("user_id", existing!.user_id);
       if (error) throw error;
       if (step === total) {
