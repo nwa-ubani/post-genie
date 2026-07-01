@@ -50,7 +50,7 @@ function Landing() {
           ].map((f) => (
             <div key={f.title} className="rounded-2xl border bg-card p-6">
               <f.icon className="h-5 w-5 text-accent" />
-              <h3 className="mt-4 font-display text-xl">{f.title}</h3>
+              <h2 className="mt-4 font-display text-xl">{f.title}</h2>
               <p className="mt-2 text-sm text-muted-foreground">{f.body}</p>
             </div>
           ))}
