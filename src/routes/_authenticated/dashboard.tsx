@@ -76,7 +76,7 @@ function Dashboard() {
         </div>
         <div className="flex items-center gap-3 rounded-full border bg-card px-4 py-2">
           <span className="text-sm">{profile.active ? "Active" : "Paused"}</span>
-          <Switch checked={profile.active} onCheckedChange={(v) => toggleActive.mutate(v)} />
+          <Switch checked={profile.active} onCheckedChange={(v) => toggleActive.mutate(v)} aria-label="Toggle automation active" />
         </div>
       </div>
 
