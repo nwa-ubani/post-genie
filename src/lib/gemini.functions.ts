@@ -59,22 +59,26 @@ function contextBlock(r1: SerperLike, r2: SerperLike) {
 
 export async function generateBrandPost(p: ProfileLike, r1: SerperLike, r2: SerperLike) {
   const companyName = p.company ?? "the company";
+  const industry = p.industry ?? "their industry";
+  const topics = p.content_topics?.length ? p.content_topics.join(", ") : industry;
 
-  const systemPrompt = `You are ${companyName}'s LinkedIn voice. ${companyName} is a ${p.industry ?? "marketing"} consultancy${p.description ? `. ${p.description}` : ""}.
+  const systemPrompt = `You are ${companyName}'s LinkedIn voice. ${companyName} works in ${industry}${p.description ? `. ${p.description}` : ""}.
 
-Write a LinkedIn post of EXACTLY 250 to 300 words. This is a hard limit — the post must not exceed 300 words under any circumstances.
+Write a LinkedIn post of 250 to 300 words. Hard limit — never exceed 300 words.
 
-VOICE: Authoritative but human. Use real brand examples — Temu, ASOS, Monzo, Glossier, Duolingo, Klarna, Netflix, Shein, Spotify, Airbnb. Explain WHY each strategy works.
+GROUNDING (CRITICAL): The user prompt contains live Google search results (organic snippets, People Also Ask questions, related searches) about ${industry} and ${topics}. You MUST build the entire post from those results. Pull the concrete facts, numbers, examples, company names, and questions directly from the feed. Do NOT invent examples. Do NOT default to generic marketing/consumer brand references (Temu, ASOS, Netflix, etc.) unless those names actually appear in the feed. If the feed is about fitness, write about fitness. If it's about SaaS, write about SaaS. Match the industry of the feed, not a template.
 
-STRUCTURE: Open with the problem as a fact. Explain why it costs brands money. Name the common mistake brands make. Give the real answer with tactics and numbers. Use one recognisable brand as a real-world example. Give a numbered action plan of 3 steps. Close with one honest thought.
+VOICE: Authoritative but human. Tone: ${p.tone ?? "clear and confident"}. Explain WHY things work using evidence from the feed.
 
-FORMAT: NO asterisks. NO bold. NO italic. NO dashes as bullets. NO markdown. Plain sentences and line breaks only. Action plan uses numbers (1. 2. 3.). 250 to 300 words — count carefully. End with 3 to 5 hashtags always including #${companyName.replace(/\s/g, "")}.
+STRUCTURE: Open with a problem or insight taken from the feed. Explain why it matters in ${industry}. Name a common mistake (from the feed if present). Give the real answer with tactics/numbers pulled from the search results. Reference one real example that appears in the feed. Numbered action plan of 3 steps. Close with one honest thought.
 
-OUTPUT: Plain text only. Strictly under 300 words. Do not add any follow/subscribe/promo lines.`;
+FORMAT: NO asterisks, bold, italic, markdown, or dash bullets. Plain sentences and line breaks. Action plan uses 1. 2. 3. End with 3–5 hashtags including #${companyName.replace(/\s/g, "")}.
+
+OUTPUT: Plain text only. Under 300 words. No follow/subscribe lines.`;
 
   const userPrompt = `${contextBlock(r1, r2)}
 
-INSTRUCTION: Pick the most interesting PAA question as the hook. Write the post as instructed in the system prompt. Then on a new line write: HOOK: <the exact PAA question you used>`;
+INSTRUCTION: Pick the most interesting PAA question above as your hook. Ground every claim, example, and number in the feed above — do not import generic examples from outside it. Write the post. Then on a new line write: HOOK: <the exact PAA question you used>`;
 
   const out = await geminiGenerate(userPrompt, systemPrompt);
   return parseHook(out);
@@ -87,20 +91,24 @@ export async function generatePersonalPost(
   rotatingBrand?: string,
 ) {
   const companyName = p.company ?? "the company";
+  const industry = p.industry ?? "their industry";
+  const topics = p.content_topics?.length ? p.content_topics.join(", ") : industry;
 
-  const systemPrompt = `You are ${p.name ?? "the user"}'s LinkedIn ghost writer. ${p.name} runs ${companyName}, a ${p.industry ?? "marketing"} consultancy. They explain brand psychology in a way that makes people say: oh, THAT is why I keep going back to that app.
+  const systemPrompt = `You are ${p.name ?? "the user"}'s LinkedIn ghost writer. ${p.name ?? "They"} work${p.name ? "s" : ""} in ${industry}${p.role ? ` as ${p.role}` : ""}${companyName !== "the company" ? ` at ${companyName}` : ""}.
 
-VOICE: Conversational. Write like a knowledgeable friend talking to another marketer. Use second person — you, your brand. Explain WHY things work, not just what they are.
+GROUNDING (CRITICAL): The user prompt contains live Google search results (organic snippets, People Also Ask, related searches) about ${industry} and ${topics}. Build the whole post from that feed. Pull the scenario, the facts, the numbers, and the example directly from the search results. Do NOT invent brands or examples that aren't in the feed. Do NOT default to generic consumer-marketing references unless they appear in the feed. Match the industry of the feed exactly.
 
-CONTENT: Pick ONE brand and build the entire post around it — use ${rotatingBrand ?? (p.admired_brands?.[0] ?? "a well-known consumer brand")} for this post. Never mention more than one brand. Open with a real scenario the reader has lived. Explain the psychology or strategy behind it using only that one brand as the example. Give at least one tactic with real numbers. End with a question inviting the reader to share their experience.
+VOICE: Conversational. Tone: ${p.tone ?? "warm and clear"}. Second person — you, your. Explain WHY, not just what.
 
-FORMAT: write the entire post in lowercase — every word, every sentence start — except brand names, abbreviations, and acronyms (e.g. ${companyName.replace(/\s/g, "")}, ASOS, UK, ROI). NO asterisks. NO bold. NO italic. NO dashes as bullets. NO markdown. Plain sentences and line breaks only. 150 to 250 words. End with 3 to 5 hashtags in normal casing, always including #${companyName.replace(/\s/g, "")}. Nothing after the hashtags.
+CONTENT: Pick ONE example from the feed (a company, study, tactic, or scenario that actually appears in the search results${rotatingBrand ? `; if ${rotatingBrand} appears in the feed, prefer it` : ""}). Build the whole post around that one example. Open with a real scenario the reader in ${industry} has lived. Explain the psychology/strategy using only that one example. Include at least one tactic with a real number from the feed. End with a question inviting the reader to share their experience.
+
+FORMAT: entire post lowercase except brand names, abbreviations, and acronyms. NO asterisks, bold, italic, markdown, or dash bullets. Plain sentences and line breaks. 150–250 words. End with 3–5 normal-case hashtags including #${companyName.replace(/\s/g, "")}. Nothing after hashtags.
 
 OUTPUT: Plain text only.`;
 
   const userPrompt = `${contextBlock(r1, r2)}
 
-INSTRUCTION: Pick the most interesting and specific PAA question. Write the short personal post as instructed in the system prompt. Then on a new line write: HOOK: <the exact PAA question you used>`;
+INSTRUCTION: Pick the most interesting and specific PAA question above. Ground every claim and example in the feed above — do not import outside brands or made-up numbers. Write the post. Then on a new line write: HOOK: <the exact PAA question you used>`;
 
   const out = await geminiGenerate(userPrompt, systemPrompt);
   return parseHook(out);
