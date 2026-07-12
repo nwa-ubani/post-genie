@@ -42,22 +42,34 @@ type ProfileLike = {
   admired_brands: string[] | null;
   content_topics: string[] | null;
   twitter_handle: string | null;
+  custom_instructions?: string | null;
+  writing_samples?: string[] | null;
 };
 
 function contextBlock(r1: SerperLike, r2: SerperLike) {
-  const paa = [...r1.peopleAlsoAsk, ...r2.peopleAlsoAsk]
-    .slice(0, 8)
-    .map((p) => `- ${p.question}${p.snippet ? ` — ${p.snippet}` : ""}`)
-    .join("\n");
-  const titles = [...r1.organic, ...r2.organic]
-    .slice(0, 10)
-    .map((o) => `- ${o.title}: ${o.snippet}`)
-    .join("\n");
-  const related = [...r1.related, ...r2.related].slice(0, 8).join(", ");
   return `FEED 1 (${r1.query}):\n${r1.organic.map((o) => `${o.title} — ${o.snippet}`).join("\n")}\nPAA: ${r1.peopleAlsoAsk.map((p) => p.question).join(" | ")}\nRelated: ${r1.related.join(", ")}\n\nFEED 2 (${r2.query}):\n${r2.organic.map((o) => `${o.title} — ${o.snippet}`).join("\n")}\nPAA: ${r2.peopleAlsoAsk.map((p) => p.question).join(" | ")}\nRelated: ${r2.related.join(", ")}`;
 }
 
-export async function generateBrandPost(p: ProfileLike, r1: SerperLike, r2: SerperLike) {
+function styleBlock(p: ProfileLike, roleModelSamples: string[]) {
+  const parts: string[] = [];
+  if (p.writing_samples?.length) {
+    parts.push(`USER'S OWN WRITING SAMPLES (mimic sentence rhythm, vocabulary, and structure):\n${p.writing_samples.map((s, i) => `Sample ${i + 1}: ${s}`).join("\n\n")}`);
+  }
+  if (roleModelSamples.length) {
+    parts.push(`ROLE-MODEL WRITING (study voice, cadence, and how they frame ideas — do not copy content, only style):\n${roleModelSamples.map((s, i) => `Reference ${i + 1}: ${s}`).join("\n\n")}`);
+  }
+  if (p.custom_instructions?.trim()) {
+    parts.push(`ADDITIONAL USER INSTRUCTIONS (highest priority — override defaults below if they conflict):\n${p.custom_instructions.trim()}`);
+  }
+  return parts.length ? `\n\n${parts.join("\n\n")}` : "";
+}
+
+export async function generateBrandPost(
+  p: ProfileLike,
+  r1: SerperLike,
+  r2: SerperLike,
+  roleModelSamples: string[] = [],
+) {
   const companyName = p.company ?? "the company";
   const industry = p.industry ?? "their industry";
   const topics = p.content_topics?.length ? p.content_topics.join(", ") : industry;
@@ -66,19 +78,21 @@ export async function generateBrandPost(p: ProfileLike, r1: SerperLike, r2: Serp
 
 Write a LinkedIn post of 250 to 300 words. Hard limit — never exceed 300 words.
 
-GROUNDING (CRITICAL): The user prompt contains live Google search results (organic snippets, People Also Ask questions, related searches) about ${industry} and ${topics}. You MUST build the entire post from those results. Pull the concrete facts, numbers, examples, company names, and questions directly from the feed. Do NOT invent examples. Do NOT default to generic marketing/consumer brand references (Temu, ASOS, Netflix, etc.) unless those names actually appear in the feed. If the feed is about fitness, write about fitness. If it's about SaaS, write about SaaS. Match the industry of the feed, not a template.
+GROUNDING (CRITICAL): The user prompt contains live Google search results about ${industry} and ${topics}. Build the entire post from those results. Pull concrete facts, numbers, examples, and questions directly from the feed. Do NOT invent examples. Do NOT default to generic marketing/consumer brand references unless they actually appear in the feed. Match the industry of the feed, not a template.
 
 VOICE: Authoritative but human. Tone: ${p.tone ?? "clear and confident"}. Explain WHY things work using evidence from the feed.
 
-STRUCTURE: Open with a problem or insight taken from the feed. Explain why it matters in ${industry}. Name a common mistake (from the feed if present). Give the real answer with tactics/numbers pulled from the search results. Reference one real example that appears in the feed. Numbered action plan of 3 steps. Close with one honest thought.
+CAPITALIZATION: Standard sentence case. Every sentence and paragraph begins with a capital letter. Proper nouns capitalized normally.
+
+STRUCTURE: Open with a problem or insight from the feed. Explain why it matters in ${industry}. Name a common mistake. Give the real answer with tactics/numbers from the feed. Reference one real example that appears in the feed. Numbered action plan of 3 steps. Close with one honest thought.
 
 FORMAT: NO asterisks, bold, italic, markdown, or dash bullets. Plain sentences and line breaks. Action plan uses 1. 2. 3. End with 3–5 hashtags including #${companyName.replace(/\s/g, "")}.
 
-OUTPUT: Plain text only. Under 300 words. No follow/subscribe lines.`;
+OUTPUT: Plain text only. Under 300 words. No follow/subscribe lines.${styleBlock(p, roleModelSamples)}`;
 
   const userPrompt = `${contextBlock(r1, r2)}
 
-INSTRUCTION: Pick the most interesting PAA question above as your hook. Ground every claim, example, and number in the feed above — do not import generic examples from outside it. Write the post. Then on a new line write: HOOK: <the exact PAA question you used>`;
+INSTRUCTION: Pick the most interesting PAA question above as your hook. Ground every claim, example, and number in the feed above. Write the post. Then on a new line write: HOOK: <the exact PAA question you used>`;
 
   const out = await geminiGenerate(userPrompt, systemPrompt);
   return parseHook(out);
@@ -89,26 +103,30 @@ export async function generatePersonalPost(
   r1: SerperLike,
   r2: SerperLike,
   rotatingBrand?: string,
+  roleModelSamples: string[] = [],
 ) {
-  const companyName = p.company ?? "the company";
+  const companyName = p.company ?? "";
   const industry = p.industry ?? "their industry";
   const topics = p.content_topics?.length ? p.content_topics.join(", ") : industry;
+  const hashtagHandle = companyName ? `#${companyName.replace(/\s/g, "")}` : `#${industry.replace(/\s/g, "")}`;
 
-  const systemPrompt = `You are ${p.name ?? "the user"}'s LinkedIn ghost writer. ${p.name ?? "They"} work${p.name ? "s" : ""} in ${industry}${p.role ? ` as ${p.role}` : ""}${companyName !== "the company" ? ` at ${companyName}` : ""}.
+  const systemPrompt = `You are ${p.name ?? "the user"}'s LinkedIn ghost writer. ${p.name ?? "They"} work${p.name ? "s" : ""} in ${industry}${p.role ? ` as ${p.role}` : ""}${companyName ? ` at ${companyName}` : ""}.
 
-GROUNDING (CRITICAL): The user prompt contains live Google search results (organic snippets, People Also Ask, related searches) about ${industry} and ${topics}. Build the whole post from that feed. Pull the scenario, the facts, the numbers, and the example directly from the search results. Do NOT invent brands or examples that aren't in the feed. Do NOT default to generic consumer-marketing references unless they appear in the feed. Match the industry of the feed exactly.
+GROUNDING (CRITICAL): The user prompt contains live Google search results about ${industry} and ${topics}. Build the whole post from that feed. Pull the scenario, the facts, the numbers, and the example directly from the search results. Do NOT invent brands or examples that aren't in the feed. Match the industry of the feed exactly.
 
 VOICE: Conversational. Tone: ${p.tone ?? "warm and clear"}. Second person — you, your. Explain WHY, not just what.
 
-CONTENT: Pick ONE example from the feed (a company, study, tactic, or scenario that actually appears in the search results${rotatingBrand ? `; if ${rotatingBrand} appears in the feed, prefer it` : ""}). Build the whole post around that one example. Open with a real scenario the reader in ${industry} has lived. Explain the psychology/strategy using only that one example. Include at least one tactic with a real number from the feed. End with a question inviting the reader to share their experience.
+CAPITALIZATION: Standard sentence case. Every sentence and paragraph begins with a capital letter. Proper nouns and brand names capitalized normally. (Only go fully lowercase if the user's additional instructions explicitly request it.)
 
-FORMAT: entire post lowercase except brand names, abbreviations, and acronyms. NO asterisks, bold, italic, markdown, or dash bullets. Plain sentences and line breaks. 150–250 words. End with 3–5 normal-case hashtags including #${companyName.replace(/\s/g, "")}. Nothing after hashtags.
+CONTENT: Pick ONE example from the feed${rotatingBrand ? ` (if ${rotatingBrand} appears in the feed, prefer it)` : ""}. Build the whole post around that one example. Open with a real scenario the reader in ${industry} has lived. Explain the psychology/strategy using only that example. Include at least one tactic with a real number from the feed. End with a question inviting the reader to share their experience.
 
-OUTPUT: Plain text only.`;
+FORMAT: NO asterisks, bold, italic, markdown, or dash bullets. Plain sentences and line breaks. 150–250 words. End with 3–5 hashtags including ${hashtagHandle}. Nothing after hashtags.
+
+OUTPUT: Plain text only.${styleBlock(p, roleModelSamples)}`;
 
   const userPrompt = `${contextBlock(r1, r2)}
 
-INSTRUCTION: Pick the most interesting and specific PAA question above. Ground every claim and example in the feed above — do not import outside brands or made-up numbers. Write the post. Then on a new line write: HOOK: <the exact PAA question you used>`;
+INSTRUCTION: Pick the most interesting and specific PAA question above. Ground every claim and example in the feed above. Write the post. Then on a new line write: HOOK: <the exact PAA question you used>`;
 
   const out = await geminiGenerate(userPrompt, systemPrompt);
   return parseHook(out);
