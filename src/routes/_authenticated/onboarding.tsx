@@ -144,6 +144,8 @@ function Onboarding() {
     } finally { setSuggesting(null); }
   };
 
+  const cleanArr = (arr: string[]) => arr.map((s) => s.trim()).filter(Boolean);
+
   const saveAndNext = async (patch: Partial<Profile> = {}) => {
     setSaving(true);
     try {
@@ -155,6 +157,8 @@ function Onboarding() {
         posting_time: times[0] ?? "09:00",
         posting_times: times.length ? times : ["09:00"],
         linkedin_personal_url: normalizeLinkedInProfile(draft.linkedin_personal_url),
+        writing_samples: cleanArr(samples),
+        role_model_urls: cleanArr(roleModelUrls),
         ...patch,
       };
       const { error } = await supabase.from("profiles").update(merged).eq("user_id", existing!.user_id);
@@ -180,6 +184,8 @@ function Onboarding() {
         posting_time: times[0] ?? "09:00",
         posting_times: times,
         linkedin_personal_url: normalizeLinkedInProfile(draft.linkedin_personal_url),
+        writing_samples: cleanArr(samples),
+        role_model_urls: cleanArr(roleModelUrls),
         onboarding_complete: true,
       } as any).eq("user_id", existing!.user_id);
       const { url } = await getLinkedIn({ data: { origin: window.location.origin } });
@@ -188,6 +194,7 @@ function Onboarding() {
       toast.error(e instanceof Error ? e.message : "LinkedIn not configured");
     }
   };
+
 
   const back = () => setStep((s) => Math.max(1, s - 1));
 
