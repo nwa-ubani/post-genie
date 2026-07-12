@@ -28,7 +28,7 @@ function Landing() {
 
       <main className="mx-auto max-w-4xl px-6 pt-20 pb-32 text-center">
         <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">LinkedIn thought leadership, automated</p>
-        <h1 className="mt-6 font-display text-5xl leading-[1.05] sm:text-7xl">
+        <h1 className="mt-6 font-display text-5xl leading-[1.05] tracking-tight md:text-6xl">
           Post thought leader content<br />
           <span className="headline-underline">every single day.</span>
         </h1>
