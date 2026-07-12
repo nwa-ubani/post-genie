@@ -39,6 +39,7 @@ function AuthPage() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [checkEmail, setCheckEmail] = useState(false);
 
   const passwordError = mode === "signup" && password.length > 0 ? validatePassword(password) : null;
 
@@ -57,13 +58,18 @@ function AuthPage() {
     setLoading(true);
     try {
       if (mode === "signup") {
-        const { error } = await supabase.auth.signUp({
+        const { data, error } = await supabase.auth.signUp({
           email, password,
           options: { emailRedirectTo: `${window.location.origin}/onboarding` },
         });
         if (error) throw error;
-        toast.success("Account created. Let's set you up.");
-        navigate({ to: "/onboarding" });
+        if (data.session) {
+          toast.success("Account created. Let's set you up.");
+          navigate({ to: "/onboarding" });
+        } else {
+          setCheckEmail(true);
+          toast.success("Check your email to verify your account.");
+        }
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
