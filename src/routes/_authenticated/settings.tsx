@@ -194,6 +194,38 @@ function Settings() {
         </div>
       </section>
 
+      <section className="space-y-3">
+        <h2 className="font-display text-xl">Notifications</h2>
+        <PushNotificationsCard />
+        <div className="rounded-lg border border-border p-4 space-y-3">
+          <p className="text-sm font-medium">What to notify me about</p>
+          <label className="flex items-center justify-between gap-3 text-sm">
+            <span>When today's post publishes</span>
+            <input
+              type="checkbox"
+              checked={form.notify_post_published !== false}
+              onChange={(e) => setForm({ ...form, notify_post_published: e.target.checked })}
+            />
+          </label>
+          <label className="flex items-center justify-between gap-3 text-sm">
+            <span>When a run fails</span>
+            <input
+              type="checkbox"
+              checked={form.notify_post_failed !== false}
+              onChange={(e) => setForm({ ...form, notify_post_failed: e.target.checked })}
+            />
+          </label>
+          <label className="flex items-center justify-between gap-3 text-sm">
+            <span>When my LinkedIn connection is about to expire</span>
+            <input
+              type="checkbox"
+              checked={form.notify_token_expiring !== false}
+              onChange={(e) => setForm({ ...form, notify_token_expiring: e.target.checked })}
+            />
+          </label>
+        </div>
+      </section>
+
       <Button onClick={() => save.mutate()} disabled={save.isPending}>Save changes</Button>
     </div>
   );
