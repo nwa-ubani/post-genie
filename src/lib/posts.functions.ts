@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { searchSerper, buildQueries } from "@/lib/serper.functions";
 import { generateBrandPost, generatePersonalPost } from "@/lib/gemini.functions";
-import { publishToLinkedIn, publishImageToLinkedIn } from "@/lib/linkedin.functions";
+import { publishToLinkedIn, publishImageToLinkedIn, publishVideoToLinkedIn } from "@/lib/linkedin.functions";
 import { fetchStyleSamples } from "@/lib/style-scrape.functions";
 
 export async function runDailyForUser(opts: {
