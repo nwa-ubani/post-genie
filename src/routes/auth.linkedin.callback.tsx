@@ -15,6 +15,8 @@ function LinkedInCallback() {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
+    const providerError = params.get("error_description") ?? params.get("error");
+    if (providerError) { setError(providerError); return; }
     const code = params.get("code");
     const state = params.get("state");
     if (!code || !state) { setError("Missing code/state"); return; }

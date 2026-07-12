@@ -1,28 +1,46 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
-const REDIRECT_PATH = "/auth/linkedin/callback";
-
-function originFromEnv() {
-  return process.env.PUBLIC_APP_URL ?? process.env.APP_URL ?? "";
-}
-
 export const getLinkedInAuthUrl = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: { origin?: string } | undefined) => d ?? {})
   .handler(async ({ context, data }) => {
     const clientId = process.env.LINKEDIN_CLIENT_ID;
-    if (!clientId)
+    const clientSecret = process.env.LINKEDIN_CLIENT_SECRET;
+    if (!clientId || !clientSecret)
       throw new Error(
         "LinkedIn is not configured yet. Add LINKEDIN_CLIENT_ID and LINKEDIN_CLIENT_SECRET in Settings → Secrets.",
       );
-    const origin = (data?.origin && /^https?:\/\//.test(data.origin) ? data.origin : "") || originFromEnv();
+
+    const normalizeOrigin = (value?: string) => {
+      if (!value) return "";
+      try {
+        const url = new URL(value);
+        return url.protocol === "http:" || url.protocol === "https:" ? url.origin : "";
+      } catch {
+        return "";
+      }
+    };
+    const isTemporaryPreviewOrigin = (origin: string) => {
+      try {
+        const host = new URL(origin).hostname;
+        return host.endsWith(".lovableproject.com") || host.startsWith("id-preview--") || host === "localhost";
+      } catch {
+        return true;
+      }
+    };
+
+    const envOrigin = normalizeOrigin(process.env.PUBLIC_APP_URL ?? process.env.APP_URL);
+    const requestedOrigin = normalizeOrigin(data?.origin);
+    const origin = requestedOrigin && !isTemporaryPreviewOrigin(requestedOrigin) ? requestedOrigin : envOrigin;
     if (!origin)
       throw new Error(
         "Set PUBLIC_APP_URL to your app's public URL so LinkedIn can redirect back.",
       );
-    const redirect = `${origin}${REDIRECT_PATH}`;
-    const state = `${context.userId}.${crypto.randomUUID()}`;
+
+    const { createLinkedInOAuthState } = await import("@/lib/linkedin-oauth-state.server");
+    const redirect = `${origin}/auth/linkedin/callback`;
+    const state = createLinkedInOAuthState(context.userId, clientSecret);
     const params = new URLSearchParams({
       response_type: "code",
       client_id: clientId,
