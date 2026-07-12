@@ -9,13 +9,14 @@ function originFromEnv() {
 
 export const getLinkedInAuthUrl = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
+  .inputValidator((d: { origin?: string } | undefined) => d ?? {})
+  .handler(async ({ context, data }) => {
     const clientId = process.env.LINKEDIN_CLIENT_ID;
     if (!clientId)
       throw new Error(
         "LinkedIn is not configured yet. Add LINKEDIN_CLIENT_ID and LINKEDIN_CLIENT_SECRET in Settings → Secrets.",
       );
-    const origin = originFromEnv();
+    const origin = (data?.origin && /^https?:\/\//.test(data.origin) ? data.origin : "") || originFromEnv();
     if (!origin)
       throw new Error(
         "Set PUBLIC_APP_URL to your app's public URL so LinkedIn can redirect back.",
@@ -29,8 +30,9 @@ export const getLinkedInAuthUrl = createServerFn({ method: "POST" })
       scope: "w_member_social openid profile",
       state,
     });
-    return { url: `https://www.linkedin.com/oauth/v2/authorization?${params.toString()}` };
+    return { url: `https://www.linkedin.com/oauth/v2/authorization?${params.toString()}`, redirect };
   });
+
 
 export async function exchangeLinkedInCode(code: string, redirectUri: string) {
   const clientId = process.env.LINKEDIN_CLIENT_ID!;

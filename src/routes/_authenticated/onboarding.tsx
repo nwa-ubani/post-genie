@@ -163,7 +163,7 @@ function Onboarding() {
         posting_times: times,
         onboarding_complete: true,
       } as any).eq("user_id", existing!.user_id);
-      const { url } = await getLinkedIn();
+      const { url } = await getLinkedIn({ data: { origin: window.location.origin } });
       window.location.href = url;
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "LinkedIn not configured");

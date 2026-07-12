@@ -55,7 +55,7 @@ function Settings() {
 
   const connectLinkedIn = async () => {
     try {
-      const { url } = await getAuthUrl();
+      const { url } = await getAuthUrl({ data: { origin: window.location.origin } });
       window.location.href = url;
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "LinkedIn not configured");
