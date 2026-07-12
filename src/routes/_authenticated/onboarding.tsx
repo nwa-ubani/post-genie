@@ -61,9 +61,11 @@ function Onboarding() {
   const [topicsText, setTopicsText] = useState("");
   const [times, setTimes] = useState<string[]>(["09:00"]);
   const [tones, setTones] = useState<string[]>([]);
+  const [samples, setSamples] = useState<string[]>([""]);
+  const [roleModelUrls, setRoleModelUrls] = useState<string[]>([""]);
   const [saving, setSaving] = useState(false);
   const [suggesting, setSuggesting] = useState<string | null>(null);
-  const total = 11;
+  const total = 12;
   const suggest = useServerFn(suggestField);
   const getLinkedIn = useServerFn(getLinkedInAuthUrl);
 
