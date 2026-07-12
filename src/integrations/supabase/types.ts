@@ -221,6 +221,7 @@ export type Database = {
           company: string | null
           content_topics: string[] | null
           created_at: string
+          custom_instructions: string | null
           description: string | null
           industry: string | null
           linkedin_company_url: string | null
@@ -232,11 +233,13 @@ export type Database = {
           posting_time: string | null
           posting_times: string[]
           role: string | null
+          role_model_urls: string[] | null
           timezone: string | null
           tone: string | null
           twitter_handle: string | null
           updated_at: string
           user_id: string
+          writing_samples: string[] | null
         }
         Insert: {
           active?: boolean
@@ -244,6 +247,7 @@ export type Database = {
           company?: string | null
           content_topics?: string[] | null
           created_at?: string
+          custom_instructions?: string | null
           description?: string | null
           industry?: string | null
           linkedin_company_url?: string | null
@@ -255,11 +259,13 @@ export type Database = {
           posting_time?: string | null
           posting_times?: string[]
           role?: string | null
+          role_model_urls?: string[] | null
           timezone?: string | null
           tone?: string | null
           twitter_handle?: string | null
           updated_at?: string
           user_id: string
+          writing_samples?: string[] | null
         }
         Update: {
           active?: boolean
@@ -267,6 +273,7 @@ export type Database = {
           company?: string | null
           content_topics?: string[] | null
           created_at?: string
+          custom_instructions?: string | null
           description?: string | null
           industry?: string | null
           linkedin_company_url?: string | null
@@ -278,11 +285,13 @@ export type Database = {
           posting_time?: string | null
           posting_times?: string[]
           role?: string | null
+          role_model_urls?: string[] | null
           timezone?: string | null
           tone?: string | null
           twitter_handle?: string | null
           updated_at?: string
           user_id?: string
+          writing_samples?: string[] | null
         }
         Relationships: []
       }
