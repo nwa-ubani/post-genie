@@ -56,6 +56,8 @@ export async function runDailyForUser(opts: {
 
   let photoId: string | null = null;
   let photoPath: string | null = null;
+  let photoMediaType: "image" | "video" = "image";
+  let photoContentType: string = "image/jpeg";
 
   if (photos?.length) {
     const yesterday = Date.now() - 86400000;
@@ -66,6 +68,8 @@ export async function runDailyForUser(opts: {
     const pick = pool[Math.floor(Math.random() * pool.length)];
     photoId = pick.id;
     photoPath = pick.file_path;
+    photoMediaType = pick.media_type === "video" ? "video" : "image";
+    photoContentType = pick.content_type ?? (photoMediaType === "video" ? "video/mp4" : "image/jpeg");
     if (!preview) {
       await supabase
         .from("photos")
@@ -73,6 +77,7 @@ export async function runDailyForUser(opts: {
         .eq("id", pick.id);
     }
   }
+
 
   const now = new Date().toISOString();
 
