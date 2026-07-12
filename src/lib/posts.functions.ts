@@ -3,6 +3,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { searchSerper, buildQueries } from "@/lib/serper.functions";
 import { generateBrandPost, generatePersonalPost } from "@/lib/gemini.functions";
 import { publishToLinkedIn, publishImageToLinkedIn } from "@/lib/linkedin.functions";
+import { fetchStyleSamples } from "@/lib/style-scrape.functions";
 
 export async function runDailyForUser(opts: {
   userId: string;
@@ -11,7 +12,6 @@ export async function runDailyForUser(opts: {
 }) {
   const { userId, supabase, preview = false } = opts;
 
-  // Load profile
   const { data: profile, error: pErr } = await supabase
     .from("profiles")
     .select("*")
@@ -19,32 +19,36 @@ export async function runDailyForUser(opts: {
     .single();
   if (pErr || !profile) throw new Error("Profile not found");
 
-  // Day-of-year drives both brand rotation and query strategy rotation
   const dayOfYear = Math.floor(
     (Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000,
   );
 
-  // Rotate brands consistently within the day
   const brands = profile.admired_brands?.length ? profile.admired_brands : [];
   const rotatingBrand = brands.length ? brands[dayOfYear % brands.length] : undefined;
 
-  // Build fresh, varied Serper queries
   const { q1, q2 } = buildQueries(profile, dayOfYear);
-  const [r1, r2] = await Promise.all([searchSerper(q1), searchSerper(q2)]);
+  const [r1, r2, roleModelSamples] = await Promise.all([
+    searchSerper(q1),
+    searchSerper(q2),
+    fetchStyleSamples(profile.role_model_urls),
+  ]);
 
-  // Cache search results
   await supabase.from("search_cache").insert([
     { user_id: userId, query: q1, results: r1 },
     { user_id: userId, query: q2, results: r2 },
   ]);
 
-  // Generate both posts in parallel
+  // Only generate a brand post if the user has a company AND a way to publish it
+  // (company page URL or Make.com webhook). Otherwise skip — personal post only.
+  const shouldGenerateBrand =
+    !!profile.company?.trim() &&
+    (!!profile.make_webhook_url?.trim() || !!profile.linkedin_company_url?.trim());
+
   const [brand, personal] = await Promise.all([
-    generateBrandPost(profile, r1, r2),
-    generatePersonalPost(profile, r1, r2, rotatingBrand),
+    shouldGenerateBrand ? generateBrandPost(profile, r1, r2, roleModelSamples) : Promise.resolve(null),
+    generatePersonalPost(profile, r1, r2, rotatingBrand, roleModelSamples),
   ]);
 
-  // Pick a photo — avoid yesterday's
   const { data: photos } = await supabase
     .from("photos")
     .select("*")
@@ -72,20 +76,23 @@ export async function runDailyForUser(opts: {
 
   const now = new Date().toISOString();
 
-  // Insert posts as draft or pending
-  const { data: brandRow } = await supabase
-    .from("posts")
-    .insert({
-      user_id: userId,
-      post_type: "brand",
-      content: brand.content,
-      keyword_hook: brand.hook,
-      serper_data: { q1, q2 },
-      scheduled_for: now,
-      status: preview ? "draft" : "pending",
-    })
-    .select()
-    .single();
+  let brandRow: any = null;
+  if (brand) {
+    const { data } = await supabase
+      .from("posts")
+      .insert({
+        user_id: userId,
+        post_type: "brand",
+        content: brand.content,
+        keyword_hook: brand.hook,
+        serper_data: { q1, q2 },
+        scheduled_for: now,
+        status: preview ? "draft" : "pending",
+      })
+      .select()
+      .single();
+    brandRow = data;
+  }
 
   const { data: personalRow } = await supabase
     .from("posts")
@@ -104,16 +111,15 @@ export async function runDailyForUser(opts: {
 
   if (preview) return { brand: brandRow, personal: personalRow, photoPath };
 
-  // --- Brand post: hand off to Make.com webhook ---
-  if (profile.make_webhook_url) {
+  if (brandRow && profile.make_webhook_url) {
     try {
       const webhookRes = await fetch(profile.make_webhook_url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           user: { name: profile.name, company: profile.company },
-          post_content: brand.content,
-          keyword_hook: brand.hook,
+          post_content: brand!.content,
+          keyword_hook: brand!.hook,
           scheduled_for: now,
         }),
       });
@@ -130,7 +136,6 @@ export async function runDailyForUser(opts: {
     }
   }
 
-  // --- Personal post: publish to LinkedIn with image if available ---
   const { data: tokens } = await supabase
     .from("linkedin_tokens")
     .select("*")
@@ -140,14 +145,11 @@ export async function runDailyForUser(opts: {
   if (tokens?.access_token && tokens?.linkedin_member_urn) {
     try {
       let urn = "";
-
       if (photoPath) {
         const { data: fileData, error: dlErr } = await supabase.storage
           .from("photos")
           .download(photoPath);
-
         if (dlErr || !fileData) throw new Error(`Could not download photo: ${dlErr?.message}`);
-
         const imageBuffer = await fileData.arrayBuffer();
         const result = await publishImageToLinkedIn(
           tokens.access_token,
@@ -164,7 +166,6 @@ export async function runDailyForUser(opts: {
         );
         urn = result.urn;
       }
-
       await supabase
         .from("posts")
         .update({ status: "published", published_at: now, linkedin_post_urn: urn })
