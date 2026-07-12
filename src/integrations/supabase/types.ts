@@ -229,6 +229,7 @@ export type Database = {
           onboarding_complete: boolean
           post_targets: string[] | null
           posting_time: string | null
+          posting_times: string[]
           role: string | null
           timezone: string | null
           tone: string | null
@@ -250,6 +251,7 @@ export type Database = {
           onboarding_complete?: boolean
           post_targets?: string[] | null
           posting_time?: string | null
+          posting_times?: string[]
           role?: string | null
           timezone?: string | null
           tone?: string | null
@@ -271,6 +273,7 @@ export type Database = {
           onboarding_complete?: boolean
           post_targets?: string[] | null
           posting_time?: string | null
+          posting_times?: string[]
           role?: string | null
           timezone?: string | null
           tone?: string | null

@@ -69,7 +69,13 @@ function Dashboard() {
 
   const runMut = useMutation({
     mutationFn: () => runNow({ data: {} }),
-    onSuccess: () => { toast.success("Run complete"); refetch(); },
+    onSuccess: () => { toast.success("Run complete — posts published"); refetch(); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const testMut = useMutation({
+    mutationFn: () => runNow({ data: { preview: true } }),
+    onSuccess: () => { toast.success("Test draft generated (not published)"); refetch(); },
     onError: (e: Error) => toast.error(e.message),
   });
 
@@ -119,9 +125,14 @@ function Dashboard() {
 
       <div className="flex items-center justify-between">
         <h2 className="font-display text-2xl">Recent posts</h2>
-        <Button onClick={() => runMut.mutate()} disabled={runMut.isPending}>
-          {runMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Run now"}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={() => testMut.mutate()} disabled={testMut.isPending}>
+            {testMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Test now"}
+          </Button>
+          <Button onClick={() => runMut.mutate()} disabled={runMut.isPending}>
+            {runMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Run now"}
+          </Button>
+        </div>
       </div>
 
       <div className="space-y-3">

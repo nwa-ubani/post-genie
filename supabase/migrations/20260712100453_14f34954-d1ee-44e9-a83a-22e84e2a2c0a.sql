@@ -1,0 +1,2 @@
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS posting_times TIME[] NOT NULL DEFAULT ARRAY['09:00'::time];
+UPDATE public.profiles SET posting_times = ARRAY[posting_time] WHERE posting_time IS NOT NULL AND (posting_times IS NULL OR array_length(posting_times,1) IS NULL OR posting_times = ARRAY['09:00'::time]);

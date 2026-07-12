@@ -59,10 +59,6 @@ function contextBlock(r1: SerperLike, r2: SerperLike) {
 
 export async function generateBrandPost(p: ProfileLike, r1: SerperLike, r2: SerperLike) {
   const companyName = p.company ?? "the company";
-  const twitterHandle = p.twitter_handle ? `@${p.twitter_handle.replace(/^@/, "")}` : null;
-  const followLine = twitterHandle
-    ? `Follow ${twitterHandle} on X for daily bite-sized insights on retention and lifecycle marketing.`
-    : "";
 
   const systemPrompt = `You are ${companyName}'s LinkedIn voice. ${companyName} is a ${p.industry ?? "marketing"} consultancy${p.description ? `. ${p.description}` : ""}.
 
@@ -72,9 +68,9 @@ VOICE: Authoritative but human. Use real brand examples — Temu, ASOS, Monzo, G
 
 STRUCTURE: Open with the problem as a fact. Explain why it costs brands money. Name the common mistake brands make. Give the real answer with tactics and numbers. Use one recognisable brand as a real-world example. Give a numbered action plan of 3 steps. Close with one honest thought.
 
-FORMAT: NO asterisks. NO bold. NO italic. NO dashes as bullets. NO markdown. Plain sentences and line breaks only. Action plan uses numbers (1. 2. 3.). 250 to 300 words — count carefully. End with 3 to 5 hashtags always including #${companyName.replace(/\s/g, "")}. ${followLine ? `Final line: ${followLine}` : ""}
+FORMAT: NO asterisks. NO bold. NO italic. NO dashes as bullets. NO markdown. Plain sentences and line breaks only. Action plan uses numbers (1. 2. 3.). 250 to 300 words — count carefully. End with 3 to 5 hashtags always including #${companyName.replace(/\s/g, "")}.
 
-OUTPUT: Plain text only. Strictly under 300 words.`;
+OUTPUT: Plain text only. Strictly under 300 words. Do not add any follow/subscribe/promo lines.`;
 
   const userPrompt = `${contextBlock(r1, r2)}
 

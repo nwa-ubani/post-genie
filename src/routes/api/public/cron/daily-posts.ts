@@ -12,26 +12,32 @@ export const Route = createFileRoute("/api/public/cron/daily-posts")({
 
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-        // Find users whose posting_time falls within the current 15-min window.
-        // Naive: ignore per-user timezone for now — use UTC. The user's posting_time is stored as TIME.
+        // Find active users with any posting_time in the current 15-min UTC window.
         const now = new Date();
         const utcMinutes = now.getUTCHours() * 60 + now.getUTCMinutes();
         const windowStart = Math.floor(utcMinutes / 15) * 15;
         const windowEnd = windowStart + 15;
-        const fmt = (m: number) => `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}:00`;
+        const inWindow = (t: string) => {
+          const [h, m] = t.split(":").map(Number);
+          const mins = h * 60 + m;
+          return mins >= windowStart && mins < windowEnd;
+        };
 
         const { data: profiles, error } = await supabaseAdmin
           .from("profiles")
-          .select("user_id, posting_time")
+          .select("user_id, posting_time, posting_times")
           .eq("active", true)
-          .eq("onboarding_complete", true)
-          .gte("posting_time", fmt(windowStart))
-          .lt("posting_time", fmt(windowEnd));
+          .eq("onboarding_complete", true);
 
         if (error) return new Response(JSON.stringify({ error: error.message }), { status: 500 });
 
+        const due = (profiles ?? []).filter((p: any) => {
+          const list: string[] = p.posting_times?.length ? p.posting_times : (p.posting_time ? [p.posting_time] : []);
+          return list.some(inWindow);
+        });
+
         const results: any[] = [];
-        for (const p of profiles ?? []) {
+        for (const p of due) {
           try {
             const r = await runDailyForUser({ userId: p.user_id, supabase: supabaseAdmin });
             results.push({ userId: p.user_id, ok: true, postIds: [r.brand?.id, r.personal?.id] });

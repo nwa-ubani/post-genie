@@ -39,6 +39,7 @@ function AuthPage() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [checkEmail, setCheckEmail] = useState(false);
 
   const passwordError = mode === "signup" && password.length > 0 ? validatePassword(password) : null;
 
@@ -57,13 +58,18 @@ function AuthPage() {
     setLoading(true);
     try {
       if (mode === "signup") {
-        const { error } = await supabase.auth.signUp({
+        const { data, error } = await supabase.auth.signUp({
           email, password,
           options: { emailRedirectTo: `${window.location.origin}/onboarding` },
         });
         if (error) throw error;
-        toast.success("Account created. Let's set you up.");
-        navigate({ to: "/onboarding" });
+        if (data.session) {
+          toast.success("Account created. Let's set you up.");
+          navigate({ to: "/onboarding" });
+        } else {
+          setCheckEmail(true);
+          toast.success("Check your email to verify your account.");
+        }
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
@@ -95,8 +101,18 @@ function AuthPage() {
           {mode === "signup" ? "Create your account" : "Welcome back"}
         </h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          {mode === "signup" ? "12 quick questions and you're posting daily." : "Pick up where you left off."}
+          {mode === "signup" ? "A few quick questions and you're posting daily." : "Pick up where you left off."}
         </p>
+
+        {checkEmail && (
+          <div className="mt-6 rounded-xl border border-accent/40 bg-accent/10 p-4 text-sm">
+            <p className="font-medium">Check your email</p>
+            <p className="mt-1 text-muted-foreground">
+              We just sent a verification link to <span className="font-medium text-foreground">{email}</span>.
+              Click it to activate your account and continue onboarding.
+            </p>
+          </div>
+        )}
 
         <Button variant="outline" className="mt-8 w-full" onClick={google} disabled={loading}>
           Continue with Google
