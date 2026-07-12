@@ -32,7 +32,7 @@ export const getLinkedInAuthUrl = createServerFn({ method: "POST" })
 
     const envOrigin = normalizeOrigin(process.env.PUBLIC_APP_URL ?? process.env.APP_URL);
     const requestedOrigin = normalizeOrigin(data?.origin);
-    const origin = requestedOrigin && !isTemporaryPreviewOrigin(requestedOrigin) ? requestedOrigin : envOrigin;
+    const origin = envOrigin || (requestedOrigin && !isTemporaryPreviewOrigin(requestedOrigin) ? requestedOrigin : "");
     if (!origin)
       throw new Error(
         "Set PUBLIC_APP_URL to your app's public URL so LinkedIn can redirect back.",
@@ -73,15 +73,6 @@ export async function exchangeLinkedInCode(code: string, redirectUri: string) {
     refresh_token?: string;
     id_token?: string;
   }>;
-}
-
-export async function fetchLinkedInMember(accessToken: string) {
-  const r = await fetch("https://api.linkedin.com/v2/userinfo", {
-    headers: { Authorization: `Bearer ${accessToken}` },
-  });
-  if (!r.ok) throw new Error("Could not fetch LinkedIn member info");
-  const j = await r.json();
-  return { sub: j.sub as string, name: j.name as string };
 }
 
 // Upload an image to LinkedIn and return the asset URN.
