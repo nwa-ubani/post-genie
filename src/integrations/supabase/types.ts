@@ -234,6 +234,9 @@ export type Database = {
           linkedin_personal_url: string | null
           make_webhook_url: string | null
           name: string | null
+          notify_post_failed: boolean
+          notify_post_published: boolean
+          notify_token_expiring: boolean
           onboarding_complete: boolean
           post_targets: string[] | null
           posting_time: string | null
@@ -260,6 +263,9 @@ export type Database = {
           linkedin_personal_url?: string | null
           make_webhook_url?: string | null
           name?: string | null
+          notify_post_failed?: boolean
+          notify_post_published?: boolean
+          notify_token_expiring?: boolean
           onboarding_complete?: boolean
           post_targets?: string[] | null
           posting_time?: string | null
@@ -286,6 +292,9 @@ export type Database = {
           linkedin_personal_url?: string | null
           make_webhook_url?: string | null
           name?: string | null
+          notify_post_failed?: boolean
+          notify_post_published?: boolean
+          notify_token_expiring?: boolean
           onboarding_complete?: boolean
           post_targets?: string[] | null
           posting_time?: string | null
@@ -298,6 +307,39 @@ export type Database = {
           updated_at?: string
           user_id?: string
           writing_samples?: string[] | null
+        }
+        Relationships: []
+      }
+      push_subscriptions: {
+        Row: {
+          auth: string
+          created_at: string
+          endpoint: string
+          id: string
+          last_used_at: string | null
+          p256dh: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          auth: string
+          created_at?: string
+          endpoint: string
+          id?: string
+          last_used_at?: string | null
+          p256dh: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          auth?: string
+          created_at?: string
+          endpoint?: string
+          id?: string
+          last_used_at?: string | null
+          p256dh?: string
+          user_agent?: string | null
+          user_id?: string
         }
         Relationships: []
       }

@@ -116,6 +116,15 @@ export async function runDailyForUser(opts: {
 
   if (preview) return { brand: brandRow, personal: personalRow, photoPath };
 
+  const notify = async (title: string, body: string, url = "/dashboard", tag?: string) => {
+    try {
+      const { sendPushToUser } = await import("./push-send.server");
+      await sendPushToUser(userId, { title, body, url, tag });
+    } catch (err) {
+      console.error("push notify failed", err);
+    }
+  };
+
   if (brandRow && profile.make_webhook_url) {
     try {
       const { safeFetch } = await import("./ssrf-guard.server");
@@ -134,8 +143,10 @@ export async function runDailyForUser(opts: {
         .from("posts")
         .update({ status: "published", published_at: now })
         .eq("id", brandRow.id);
+      if (profile.notify_post_published !== false) {
+        await notify("Brand post sent 📣", "Handed off your company post to Make.com.", "/dashboard", "post-brand");
+      }
     } catch (e) {
-      // Return only a generic message to avoid using error text as an SSRF oracle.
       const safe = e instanceof Error && /private|reserved|not allowed|Invalid URL|resolve/i.test(e.message)
         ? "Webhook URL not allowed"
         : "Webhook delivery failed";
@@ -143,6 +154,9 @@ export async function runDailyForUser(opts: {
         .from("posts")
         .update({ status: "failed", error: safe })
         .eq("id", brandRow.id);
+      if (profile.notify_post_failed !== false) {
+        await notify("Brand post failed ⚠️", safe, "/dashboard", "post-brand-fail");
+      }
     }
   }
 
@@ -151,6 +165,20 @@ export async function runDailyForUser(opts: {
     .select("*")
     .eq("user_id", userId)
     .maybeSingle();
+
+  // Token expiry warning: notify once when < 7 days remain.
+  if (tokens?.expires_at && profile.notify_token_expiring !== false) {
+    const ms = new Date(tokens.expires_at).getTime() - Date.now();
+    const days = ms / 86400000;
+    if (days > 0 && days < 7) {
+      await notify(
+        "LinkedIn reconnect needed soon 🔑",
+        `Your LinkedIn access expires in ${Math.ceil(days)} day${Math.ceil(days) === 1 ? "" : "s"}. Reconnect from Settings.`,
+        "/settings",
+        "linkedin-expiring",
+      );
+    }
+  }
 
   if (tokens?.access_token && tokens?.linkedin_member_urn) {
     try {
@@ -178,20 +206,33 @@ export async function runDailyForUser(opts: {
         .from("posts")
         .update({ status: "published", published_at: now, linkedin_post_urn: urn })
         .eq("id", personalRow.id);
+      if (profile.notify_post_published !== false) {
+        const preview = (personal.content ?? "").slice(0, 90);
+        await notify(
+          "Today's post is live on LinkedIn ✅",
+          preview + ((personal.content ?? "").length > 90 ? "…" : ""),
+          "/dashboard",
+          "post-personal",
+        );
+      }
     } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
       await supabase
         .from("posts")
-        .update({
-          status: "failed",
-          error: e instanceof Error ? e.message : String(e),
-        })
+        .update({ status: "failed", error: msg })
         .eq("id", personalRow.id);
+      if (profile.notify_post_failed !== false) {
+        await notify("Today's post failed ⚠️", msg.slice(0, 140), "/dashboard", "post-personal-fail");
+      }
     }
   } else {
     await supabase
       .from("posts")
       .update({ status: "failed", error: "LinkedIn not connected" })
       .eq("id", personalRow.id);
+    if (profile.notify_post_failed !== false) {
+      await notify("LinkedIn not connected 🔌", "Reconnect from Settings so we can publish tomorrow.", "/settings", "linkedin-missing");
+    }
   }
 
   return { brand: brandRow, personal: personalRow };

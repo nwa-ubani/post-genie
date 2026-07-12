@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
 import { getLinkedInAuthUrl } from "@/lib/linkedin.functions";
+import { PushNotificationsCard } from "@/components/PushNotificationsCard";
 
 export const Route = createFileRoute("/_authenticated/settings")({
   head: () => ({
@@ -191,6 +192,38 @@ function Settings() {
         <div className="space-y-1.5">
           <Label>Make.com webhook URL <span className="text-xs text-muted-foreground">(for company-page handoff)</span></Label>
           <Input value={form.make_webhook_url ?? ""} onChange={(e) => setForm({ ...form, make_webhook_url: e.target.value })} placeholder="https://hook.make.com/…" />
+        </div>
+      </section>
+
+      <section className="space-y-3">
+        <h2 className="font-display text-xl">Notifications</h2>
+        <PushNotificationsCard />
+        <div className="rounded-lg border border-border p-4 space-y-3">
+          <p className="text-sm font-medium">What to notify me about</p>
+          <label className="flex items-center justify-between gap-3 text-sm">
+            <span>When today's post publishes</span>
+            <input
+              type="checkbox"
+              checked={form.notify_post_published !== false}
+              onChange={(e) => setForm({ ...form, notify_post_published: e.target.checked })}
+            />
+          </label>
+          <label className="flex items-center justify-between gap-3 text-sm">
+            <span>When a run fails</span>
+            <input
+              type="checkbox"
+              checked={form.notify_post_failed !== false}
+              onChange={(e) => setForm({ ...form, notify_post_failed: e.target.checked })}
+            />
+          </label>
+          <label className="flex items-center justify-between gap-3 text-sm">
+            <span>When my LinkedIn connection is about to expire</span>
+            <input
+              type="checkbox"
+              checked={form.notify_token_expiring !== false}
+              onChange={(e) => setForm({ ...form, notify_token_expiring: e.target.checked })}
+            />
+          </label>
         </div>
       </section>
 
