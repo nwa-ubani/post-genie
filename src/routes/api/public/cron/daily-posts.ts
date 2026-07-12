@@ -14,8 +14,6 @@ export const Route = createFileRoute("/api/public/cron/daily-posts")({
 
         const now = new Date();
 
-        // Convert UTC now to a user's local time and return minutes since midnight.
-        // Uses Intl.DateTimeFormat so any valid IANA timezone string works.
         const getLocalMinutes = (timezone: string): number => {
           try {
             const parts = new Intl.DateTimeFormat("en-US", {
@@ -28,26 +26,39 @@ export const Route = createFileRoute("/api/public/cron/daily-posts")({
             const m = parseInt(parts.find((p) => p.type === "minute")?.value ?? "0", 10);
             return h * 60 + m;
           } catch {
-            // Invalid timezone — fall back to UTC so the user still gets their post
             return now.getUTCHours() * 60 + now.getUTCMinutes();
           }
         };
 
-        // Window is 60 min because Make.com runs the scenario every 60 minutes.
-        // A user whose posting_time falls anywhere in the current local hour is considered due.
+        // Window is now 15 min (Make.com fires every 15 minutes).
         const inWindow = (postingTime: string, timezone: string): boolean => {
           const localMinutes = getLocalMinutes(timezone || "UTC");
-          const windowStart = Math.floor(localMinutes / 60) * 60; // top of the current local hour
-          const windowEnd = windowStart + 60;
+          const windowStart = Math.floor(localMinutes / 15) * 15;
+          const windowEnd = windowStart + 15;
           const [h, m] = postingTime.split(":").map(Number);
           const postMinutes = h * 60 + m;
           return postMinutes >= windowStart && postMinutes < windowEnd;
         };
 
-        // Fetch timezone alongside posting times so we can localise the check.
+        // posting_days is int[] 0–6 (0 = Sunday). Null/empty = post every day.
+        const isDueToday = (postingDays: number[] | null, timezone: string): boolean => {
+          if (!postingDays?.length) return true;
+          try {
+            const parts = new Intl.DateTimeFormat("en-US", {
+              timeZone: timezone || "UTC",
+              weekday: "short",
+            }).formatToParts(now);
+            const weekdayName = parts.find((p) => p.type === "weekday")?.value ?? "";
+            const dayIndex = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].indexOf(weekdayName);
+            return dayIndex >= 0 && postingDays.includes(dayIndex);
+          } catch {
+            return true;
+          }
+        };
+
         const { data: profiles, error } = await supabaseAdmin
           .from("profiles")
-          .select("user_id, posting_time, posting_times, timezone")
+          .select("user_id, posting_time, posting_times, timezone, posting_days")
           .eq("active", true)
           .eq("onboarding_complete", true);
 
@@ -55,6 +66,7 @@ export const Route = createFileRoute("/api/public/cron/daily-posts")({
 
         const due = (profiles ?? []).filter((p: any) => {
           const tz = p.timezone || "UTC";
+          if (!isDueToday(p.posting_days ?? null, tz)) return false;
           const list: string[] = p.posting_times?.length
             ? p.posting_times
             : p.posting_time
@@ -65,6 +77,20 @@ export const Route = createFileRoute("/api/public/cron/daily-posts")({
 
         const results: any[] = [];
         for (const p of due) {
+          // Dedup: skip if a post was already created in the last 20 minutes
+          const { data: recentPost } = await supabaseAdmin
+            .from("posts")
+            .select("id")
+            .eq("user_id", p.user_id)
+            .gte("created_at", new Date(Date.now() - 20 * 60 * 1000).toISOString())
+            .limit(1)
+            .maybeSingle();
+
+          if (recentPost) {
+            results.push({ userId: p.user_id, ok: true, skipped: true, reason: "already posted in last 20 min" });
+            continue;
+          }
+
           try {
             const r = await runDailyForUser({ userId: p.user_id, supabase: supabaseAdmin });
             results.push({ userId: p.user_id, ok: true, postIds: [r.brand?.id, r.personal?.id] });
