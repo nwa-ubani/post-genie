@@ -43,10 +43,23 @@ function Settings() {
   const [form, setForm] = useState<Record<string, any>>({});
   useEffect(() => { if (profile) setForm(profile); }, [profile]);
 
+  const normalizeLinkedInProfile = (value: string) => {
+    const cleaned = value.trim();
+    if (!cleaned) return null;
+    if (/^https?:\/\//i.test(cleaned)) return cleaned;
+    if (/^linkedin\.com\//i.test(cleaned)) return `https://${cleaned}`;
+    if (/^\/in\//i.test(cleaned)) return `https://www.linkedin.com${cleaned}`;
+    return `https://www.linkedin.com/in/${cleaned.replace(/^@/, "")}`;
+  };
+
   const save = useMutation({
     mutationFn: async () => {
       const { user_id, created_at, updated_at, onboarding_complete, ...patch } = form;
-      const { error } = await supabase.from("profiles").update(patch as any).eq("user_id", profile!.user_id);
+      const cleanedPatch = {
+        ...patch,
+        linkedin_personal_url: normalizeLinkedInProfile(patch.linkedin_personal_url ?? ""),
+      };
+      const { error } = await supabase.from("profiles").update(cleanedPatch as any).eq("user_id", profile!.user_id);
       if (error) throw error;
     },
     onSuccess: () => { toast.success("Saved"); refetch(); },
@@ -78,6 +91,17 @@ function Settings() {
 
       <section className="space-y-4">
         <h2 className="font-display text-xl">LinkedIn</h2>
+        <div className="space-y-1.5">
+          <Label>Personal LinkedIn profile</Label>
+          <Input
+            value={form.linkedin_personal_url ?? ""}
+            onChange={(e) => setForm({ ...form, linkedin_personal_url: e.target.value })}
+            placeholder="https://www.linkedin.com/in/your-name"
+          />
+          <p className="text-xs text-muted-foreground">
+            Full link is best, but you can also type just your LinkedIn username and we'll turn it into a profile link.
+          </p>
+        </div>
         {tokens ? (
           <div className="flex items-center justify-between rounded-xl border bg-card p-4">
             <div>
