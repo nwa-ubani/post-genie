@@ -154,14 +154,11 @@ export async function runDailyForUser(opts: {
         const { data: fileData, error: dlErr } = await supabase.storage
           .from("photos")
           .download(photoPath);
-        if (dlErr || !fileData) throw new Error(`Could not download photo: ${dlErr?.message}`);
-        const imageBuffer = await fileData.arrayBuffer();
-        const result = await publishImageToLinkedIn(
-          tokens.access_token,
-          tokens.linkedin_member_urn,
-          personal.content,
-          imageBuffer,
-        );
+        if (dlErr || !fileData) throw new Error(`Could not download media: ${dlErr?.message}`);
+        const buffer = await fileData.arrayBuffer();
+        const result = photoMediaType === "video"
+          ? await publishVideoToLinkedIn(tokens.access_token, tokens.linkedin_member_urn, personal.content, buffer, photoContentType)
+          : await publishImageToLinkedIn(tokens.access_token, tokens.linkedin_member_urn, personal.content, buffer);
         urn = result.urn;
       } else {
         const result = await publishToLinkedIn(
@@ -171,6 +168,7 @@ export async function runDailyForUser(opts: {
         );
         urn = result.urn;
       }
+
       await supabase
         .from("posts")
         .update({ status: "published", published_at: now, linkedin_post_urn: urn })
