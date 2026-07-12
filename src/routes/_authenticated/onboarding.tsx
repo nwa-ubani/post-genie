@@ -23,6 +23,7 @@ type Profile = {
   description?: string; twitter_handle?: string; linkedin_company_url?: string; linkedin_personal_url?: string;
   tone?: string; admired_brands?: string[]; content_topics?: string[];
   posting_time?: string; posting_times?: string[]; timezone?: string;
+  custom_instructions?: string; writing_samples?: string[]; role_model_urls?: string[];
 };
 
 const TONES = ["Authoritative", "Friendly", "Witty", "Bold", "Warm", "Analytical"];
@@ -60,9 +61,11 @@ function Onboarding() {
   const [topicsText, setTopicsText] = useState("");
   const [times, setTimes] = useState<string[]>(["09:00"]);
   const [tones, setTones] = useState<string[]>([]);
+  const [samples, setSamples] = useState<string[]>([""]);
+  const [roleModelUrls, setRoleModelUrls] = useState<string[]>([""]);
   const [saving, setSaving] = useState(false);
   const [suggesting, setSuggesting] = useState<string | null>(null);
-  const total = 11;
+  const total = 12;
   const suggest = useServerFn(suggestField);
   const getLinkedIn = useServerFn(getLinkedInAuthUrl);
 
@@ -99,6 +102,11 @@ function Onboarding() {
       const existingTimes = (existing as any).posting_times as string[] | null;
       setTimes(existingTimes?.length ? existingTimes.map((t) => t.slice(0, 5)) : [existing.posting_time?.slice(0, 5) ?? "09:00"]);
       setTones(existing.tone ? existing.tone.split(",").map((t: string) => t.trim()).filter(Boolean) : []);
+      const exSamples = (existing as any).writing_samples as string[] | null;
+      setSamples(exSamples?.length ? exSamples : [""]);
+      const exUrls = (existing as any).role_model_urls as string[] | null;
+      setRoleModelUrls(exUrls?.length ? exUrls : [""]);
+      setDraft((d) => ({ ...d, custom_instructions: (existing as any).custom_instructions ?? "" }));
     }
   }, [existing]);
 
@@ -136,6 +144,8 @@ function Onboarding() {
     } finally { setSuggesting(null); }
   };
 
+  const cleanArr = (arr: string[]) => arr.map((s) => s.trim()).filter(Boolean);
+
   const saveAndNext = async (patch: Partial<Profile> = {}) => {
     setSaving(true);
     try {
@@ -147,6 +157,8 @@ function Onboarding() {
         posting_time: times[0] ?? "09:00",
         posting_times: times.length ? times : ["09:00"],
         linkedin_personal_url: normalizeLinkedInProfile(draft.linkedin_personal_url),
+        writing_samples: cleanArr(samples),
+        role_model_urls: cleanArr(roleModelUrls),
         ...patch,
       };
       const { error } = await supabase.from("profiles").update(merged).eq("user_id", existing!.user_id);
@@ -172,6 +184,8 @@ function Onboarding() {
         posting_time: times[0] ?? "09:00",
         posting_times: times,
         linkedin_personal_url: normalizeLinkedInProfile(draft.linkedin_personal_url),
+        writing_samples: cleanArr(samples),
+        role_model_urls: cleanArr(roleModelUrls),
         onboarding_complete: true,
       } as any).eq("user_id", existing!.user_id);
       const { url } = await getLinkedIn({ data: { origin: window.location.origin } });
@@ -180,6 +194,7 @@ function Onboarding() {
       toast.error(e instanceof Error ? e.message : "LinkedIn not configured");
     }
   };
+
 
   const back = () => setStep((s) => Math.max(1, s - 1));
 
@@ -289,6 +304,72 @@ function Onboarding() {
         </Field>
       );
       case 11: return (
+        <Field title="Make it sound like you" subtitle="Optional but powerful — the AI will study these to match your voice.">
+          <div className="space-y-6">
+            <div className="space-y-1.5">
+              <Label>Extra instructions for the AI</Label>
+              <Textarea
+                rows={4}
+                value={draft.custom_instructions ?? ""}
+                onChange={(e) => set("custom_instructions", e.target.value)}
+                placeholder="e.g. Never use emojis. Always end with a question. Keep posts under 200 words. Write in lowercase."
+              />
+              <p className="text-xs text-muted-foreground">Anything specific about how you want to sound. Highest priority.</p>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Your writing samples (2–5 posts you're proud of)</Label>
+              {samples.map((s, i) => (
+                <div key={i} className="flex items-start gap-2">
+                  <Textarea
+                    rows={3}
+                    value={s}
+                    onChange={(e) => setSamples(samples.map((x, j) => j === i ? e.target.value : x))}
+                    placeholder="Paste one of your best posts…"
+                    className="flex-1"
+                  />
+                  {samples.length > 1 && (
+                    <Button type="button" variant="ghost" size="icon" onClick={() => setSamples(samples.filter((_, j) => j !== i))} aria-label="Remove sample">
+                      <X className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+              ))}
+              {samples.length < 5 && (
+                <Button type="button" variant="outline" size="sm" onClick={() => setSamples([...samples, ""])}>
+                  <Plus className="mr-1 h-4 w-4" /> Add another sample
+                </Button>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label>Role-model pages (blogs, personal sites, newsletters)</Label>
+              {roleModelUrls.map((u, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <Input
+                    value={u}
+                    onChange={(e) => setRoleModelUrls(roleModelUrls.map((x, j) => j === i ? e.target.value : x))}
+                    placeholder="https://someone-you-admire.com/post"
+                    className="flex-1"
+                  />
+                  {roleModelUrls.length > 1 && (
+                    <Button type="button" variant="ghost" size="icon" onClick={() => setRoleModelUrls(roleModelUrls.filter((_, j) => j !== i))} aria-label="Remove URL">
+                      <X className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+              ))}
+              {roleModelUrls.length < 5 && (
+                <Button type="button" variant="outline" size="sm" onClick={() => setRoleModelUrls([...roleModelUrls, ""])}>
+                  <Plus className="mr-1 h-4 w-4" /> Add another link
+                </Button>
+              )}
+              <p className="text-xs text-muted-foreground">Public URLs only. LinkedIn profiles can't be scraped — paste blog posts, Substack, personal sites, Medium, etc.</p>
+            </div>
+          </div>
+        </Field>
+      );
+      case 12: return (
         <Field title="Connect LinkedIn" subtitle="We'll post to your LinkedIn daily. Click below to authorize — takes 30 seconds.">
           <div className="space-y-3">
             <Button type="button" size="lg" onClick={connectLinkedIn} className="w-full">
@@ -310,12 +391,12 @@ function Onboarding() {
           <ArrowLeft className="mr-1 h-4 w-4" /> Back
         </Button>
         <div className="flex items-center gap-2">
-          {step === 11 && (
+          {step === 12 && (
             <Button variant="ghost" onClick={() => saveAndNext()} disabled={saving}>
               Skip for now
             </Button>
           )}
-          {step !== 11 && (
+          {step !== 12 && (
             <Button onClick={() => saveAndNext()} disabled={saving}>
               Continue <ArrowRight className="ml-1 h-4 w-4" />
             </Button>
