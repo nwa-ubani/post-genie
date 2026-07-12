@@ -19,7 +19,7 @@ import { Route as AuthenticatedPreviewRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedPhotosRouteImport } from './routes/_authenticated/photos'
 import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authenticated/onboarding'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
-import { Route as AuthLinkedinCallbackRouteImport } from './routes/auth.linkedin.callback'
+import { Route as AuthLinkedinCallbackIndexRouteImport } from './routes/auth.linkedin.callback.index'
 import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
 import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/email/auth/webhook'
 import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
@@ -75,11 +75,12 @@ const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthLinkedinCallbackRoute = AuthLinkedinCallbackRouteImport.update({
-  id: '/linkedin/callback',
-  path: '/linkedin/callback',
-  getParentRoute: () => AuthRoute,
-} as any)
+const AuthLinkedinCallbackIndexRoute =
+  AuthLinkedinCallbackIndexRouteImport.update({
+    id: '/linkedin/callback/',
+    path: '/linkedin/callback/',
+    getParentRoute: () => AuthRoute,
+  } as any)
 const LovableEmailQueueProcessRoute =
   LovableEmailQueueProcessRouteImport.update({
     id: '/lovable/email/queue/process',
@@ -112,11 +113,11 @@ export interface FileRoutesByFullPath {
   '/preview': typeof AuthenticatedPreviewRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/blog/automate-linkedin-posts-with-ai': typeof BlogAutomateLinkedinPostsWithAiRoute
-  '/auth/linkedin/callback': typeof AuthLinkedinCallbackRoute
   '/api/public/cron/daily-posts': typeof ApiPublicCronDailyPostsRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
+  '/auth/linkedin/callback/': typeof AuthLinkedinCallbackIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -128,11 +129,11 @@ export interface FileRoutesByTo {
   '/preview': typeof AuthenticatedPreviewRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/blog/automate-linkedin-posts-with-ai': typeof BlogAutomateLinkedinPostsWithAiRoute
-  '/auth/linkedin/callback': typeof AuthLinkedinCallbackRoute
   '/api/public/cron/daily-posts': typeof ApiPublicCronDailyPostsRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
+  '/auth/linkedin/callback': typeof AuthLinkedinCallbackIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -146,11 +147,11 @@ export interface FileRoutesById {
   '/_authenticated/preview': typeof AuthenticatedPreviewRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/blog/automate-linkedin-posts-with-ai': typeof BlogAutomateLinkedinPostsWithAiRoute
-  '/auth/linkedin/callback': typeof AuthLinkedinCallbackRoute
   '/api/public/cron/daily-posts': typeof ApiPublicCronDailyPostsRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
+  '/auth/linkedin/callback/': typeof AuthLinkedinCallbackIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -164,11 +165,11 @@ export interface FileRouteTypes {
     | '/preview'
     | '/settings'
     | '/blog/automate-linkedin-posts-with-ai'
-    | '/auth/linkedin/callback'
     | '/api/public/cron/daily-posts'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
+    | '/auth/linkedin/callback/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -180,11 +181,11 @@ export interface FileRouteTypes {
     | '/preview'
     | '/settings'
     | '/blog/automate-linkedin-posts-with-ai'
-    | '/auth/linkedin/callback'
     | '/api/public/cron/daily-posts'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
+    | '/auth/linkedin/callback'
   id:
     | '__root__'
     | '/'
@@ -197,11 +198,11 @@ export interface FileRouteTypes {
     | '/_authenticated/preview'
     | '/_authenticated/settings'
     | '/blog/automate-linkedin-posts-with-ai'
-    | '/auth/linkedin/callback'
     | '/api/public/cron/daily-posts'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
+    | '/auth/linkedin/callback/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -288,11 +289,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/auth/linkedin/callback': {
-      id: '/auth/linkedin/callback'
+    '/auth/linkedin/callback/': {
+      id: '/auth/linkedin/callback/'
       path: '/linkedin/callback'
-      fullPath: '/auth/linkedin/callback'
-      preLoaderRoute: typeof AuthLinkedinCallbackRouteImport
+      fullPath: '/auth/linkedin/callback/'
+      preLoaderRoute: typeof AuthLinkedinCallbackIndexRouteImport
       parentRoute: typeof AuthRoute
     }
     '/lovable/email/queue/process': {
@@ -346,11 +347,11 @@ const AuthenticatedRouteRouteWithChildren =
   AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
 
 interface AuthRouteChildren {
-  AuthLinkedinCallbackRoute: typeof AuthLinkedinCallbackRoute
+  AuthLinkedinCallbackIndexRoute: typeof AuthLinkedinCallbackIndexRoute
 }
 
 const AuthRouteChildren: AuthRouteChildren = {
-  AuthLinkedinCallbackRoute: AuthLinkedinCallbackRoute,
+  AuthLinkedinCallbackIndexRoute: AuthLinkedinCallbackIndexRoute,
 }
 
 const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)

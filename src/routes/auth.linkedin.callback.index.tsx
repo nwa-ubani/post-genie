@@ -4,7 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { saveLinkedInToken } from "@/lib/linkedin-callback.functions";
 import { Loader2 } from "lucide-react";
 
-export const Route = createFileRoute("/auth/linkedin/callback")({
+export const Route = createFileRoute("/auth/linkedin/callback/")({
   component: LinkedInCallback,
 });
 
