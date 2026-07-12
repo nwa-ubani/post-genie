@@ -224,6 +224,7 @@ export type Database = {
           description: string | null
           industry: string | null
           linkedin_company_url: string | null
+          linkedin_personal_url: string | null
           make_webhook_url: string | null
           name: string | null
           onboarding_complete: boolean
@@ -246,6 +247,7 @@ export type Database = {
           description?: string | null
           industry?: string | null
           linkedin_company_url?: string | null
+          linkedin_personal_url?: string | null
           make_webhook_url?: string | null
           name?: string | null
           onboarding_complete?: boolean
@@ -268,6 +270,7 @@ export type Database = {
           description?: string | null
           industry?: string | null
           linkedin_company_url?: string | null
+          linkedin_personal_url?: string | null
           make_webhook_url?: string | null
           name?: string | null
           onboarding_complete?: boolean

@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { exchangeLinkedInCode, fetchLinkedInMember } from "@/lib/linkedin.functions";
+import { exchangeLinkedInCode } from "@/lib/linkedin.functions";
 
 export const saveLinkedInToken = createServerFn({ method: "POST" })
   .inputValidator((d: { code: string; state: string; redirectUri: string }) => d)
@@ -10,7 +10,13 @@ export const saveLinkedInToken = createServerFn({ method: "POST" })
     const { verifyLinkedInOAuthState } = await import("@/lib/linkedin-oauth-state.server");
     const { userId } = verifyLinkedInOAuthState(data.state, clientSecret);
     const token = await exchangeLinkedInCode(data.code, data.redirectUri);
-    const member = await fetchLinkedInMember(token.access_token);
+    const idPayload = token.id_token?.split(".")[1];
+    const profile = idPayload
+      ? JSON.parse(atob(idPayload.replace(/-/g, "+").replace(/_/g, "/").padEnd(Math.ceil(idPayload.length / 4) * 4, "="))) as { sub?: string; name?: string }
+      : null;
+    if (!profile?.sub) {
+      throw new Error("LinkedIn connected, but did not return the profile ID needed for posting. Make sure Sign In with LinkedIn is enabled in your LinkedIn app.");
+    }
     const expires_at = new Date(Date.now() + token.expires_in * 1000).toISOString();
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error } = await supabaseAdmin.from("linkedin_tokens").upsert({
@@ -18,8 +24,8 @@ export const saveLinkedInToken = createServerFn({ method: "POST" })
       access_token: token.access_token,
       refresh_token: token.refresh_token ?? null,
       expires_at,
-      linkedin_member_urn: member.sub,
-      linkedin_name: member.name,
+      linkedin_member_urn: profile.sub,
+      linkedin_name: profile.name ?? "Connected",
     });
     if (error) throw error;
     return { ok: true };

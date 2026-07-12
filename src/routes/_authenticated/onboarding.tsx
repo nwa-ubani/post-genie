@@ -20,7 +20,7 @@ export const Route = createFileRoute("/_authenticated/onboarding")({
 
 type Profile = {
   name?: string; role?: string; company?: string; industry?: string;
-  description?: string; twitter_handle?: string; linkedin_company_url?: string;
+  description?: string; twitter_handle?: string; linkedin_company_url?: string; linkedin_personal_url?: string;
   tone?: string; admired_brands?: string[]; content_topics?: string[];
   posting_time?: string; posting_times?: string[]; timezone?: string;
 };
@@ -67,6 +67,14 @@ function Onboarding() {
   const getLinkedIn = useServerFn(getLinkedInAuthUrl);
 
   const splitList = (s: string) => s.split(",").map((x) => x.trim()).filter(Boolean);
+  const normalizeLinkedInProfile = (value?: string) => {
+    const cleaned = (value ?? "").trim();
+    if (!cleaned) return "";
+    if (/^https?:\/\//i.test(cleaned)) return cleaned;
+    if (/^linkedin\.com\//i.test(cleaned)) return `https://${cleaned}`;
+    if (/^\/in\//i.test(cleaned)) return `https://www.linkedin.com${cleaned}`;
+    return `https://www.linkedin.com/in/${cleaned.replace(/^@/, "")}`;
+  };
 
   const { data: existing } = useQuery({
     queryKey: ["profile"],
@@ -79,6 +87,7 @@ function Onboarding() {
         name: existing.name ?? "", role: existing.role ?? "", company: existing.company ?? "",
         industry: existing.industry ?? "", description: existing.description ?? "",
         twitter_handle: existing.twitter_handle ?? "", linkedin_company_url: existing.linkedin_company_url ?? "",
+        linkedin_personal_url: (existing as any).linkedin_personal_url ?? "",
         tone: existing.tone ?? "", admired_brands: existing.admired_brands ?? [],
         content_topics: existing.content_topics ?? [],
         posting_time: existing.posting_time ?? "09:00",
@@ -137,6 +146,7 @@ function Onboarding() {
         content_topics: splitList(topicsText),
         posting_time: times[0] ?? "09:00",
         posting_times: times.length ? times : ["09:00"],
+        linkedin_personal_url: normalizeLinkedInProfile(draft.linkedin_personal_url),
         ...patch,
       };
       const { error } = await supabase.from("profiles").update(merged).eq("user_id", existing!.user_id);
@@ -161,6 +171,7 @@ function Onboarding() {
         content_topics: splitList(topicsText),
         posting_time: times[0] ?? "09:00",
         posting_times: times,
+        linkedin_personal_url: normalizeLinkedInProfile(draft.linkedin_personal_url),
         onboarding_complete: true,
       } as any).eq("user_id", existing!.user_id);
       const { url } = await getLinkedIn({ data: { origin: window.location.origin } });
@@ -211,6 +222,10 @@ function Onboarding() {
       case 6: return (
         <Field title="Your handles" subtitle="Optional. We use them for context.">
           <div className="space-y-3">
+            <div className="space-y-1.5">
+              <Input value={draft.linkedin_personal_url ?? ""} onChange={(e) => set("linkedin_personal_url", e.target.value)} placeholder="https://www.linkedin.com/in/your-name" />
+              <p className="text-xs text-muted-foreground">Full link is best, but just your LinkedIn username works too.</p>
+            </div>
             <Input value={draft.twitter_handle ?? ""} onChange={(e) => set("twitter_handle", e.target.value)} placeholder="@yourhandle" />
             <Input value={draft.linkedin_company_url ?? ""} onChange={(e) => set("linkedin_company_url", e.target.value)} placeholder="linkedin.com/company/…" />
           </div>
@@ -277,11 +292,8 @@ function Onboarding() {
         <Field title="Connect LinkedIn" subtitle="We'll post to your LinkedIn daily. Click below to authorize — takes 30 seconds.">
           <div className="space-y-3">
             <Button type="button" size="lg" onClick={connectLinkedIn} className="w-full">
-              <Linkedin className="mr-2 h-4 w-4" /> Authorize LinkedIn
+              <Linkedin className="mr-2 h-4 w-4" /> Connect LinkedIn
             </Button>
-            <p className="text-xs text-muted-foreground">
-              You'll be redirected to LinkedIn to grant permission, then sent back here.
-            </p>
           </div>
         </Field>
       );
