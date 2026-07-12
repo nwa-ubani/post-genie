@@ -177,7 +177,8 @@ export async function publishImageToLinkedIn(
   text: string,
   imageBuffer: ArrayBuffer,
 ) {
-  const assetUrn = await uploadImageToLinkedIn(accessToken, memberUrn, imageBuffer);
+  const assetUrn = await uploadMediaToLinkedIn(accessToken, memberUrn, imageBuffer, "image", "image/jpeg");
+
 
   const r = await fetch("https://api.linkedin.com/v2/ugcPosts", {
     method: "POST",
