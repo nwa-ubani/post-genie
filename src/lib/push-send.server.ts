@@ -37,7 +37,7 @@ export async function sendPushToSubscription(
   const vapid = getVapid();
   const built = await buildPushPayload(
     {
-      data: payload as unknown as Record<string, unknown>,
+      data: payload as unknown as Parameters<typeof buildPushPayload>[0]["data"],
       options: { ttl: 60 * 60 * 24, urgency: "normal" },
     },
     { endpoint: sub.endpoint, expirationTime: null, keys: { auth: sub.auth, p256dh: sub.p256dh } },
@@ -46,7 +46,7 @@ export async function sendPushToSubscription(
   const res = await fetch(sub.endpoint, {
     method: built.method,
     headers: built.headers as unknown as HeadersInit,
-    body: built.body,
+    body: new Uint8Array(built.body) as unknown as BodyInit,
   });
   // 404/410 = endpoint gone; caller should delete the row.
   return { status: res.status, shouldDelete: res.status === 404 || res.status === 410 };
