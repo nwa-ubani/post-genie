@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
 import { getLinkedInAuthUrl } from "@/lib/linkedin.functions";
+import { PushNotificationsCard } from "@/components/PushNotificationsCard";
 
 export const Route = createFileRoute("/_authenticated/settings")({
   head: () => ({
