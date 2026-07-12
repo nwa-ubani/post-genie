@@ -75,13 +75,18 @@ export async function exchangeLinkedInCode(code: string, redirectUri: string) {
   }>;
 }
 
-// Upload an image to LinkedIn and return the asset URN.
-async function uploadImageToLinkedIn(
+// Upload media (image or video) to LinkedIn and return the asset URN.
+async function uploadMediaToLinkedIn(
   accessToken: string,
   memberUrn: string,
-  imageBuffer: ArrayBuffer,
+  buffer: ArrayBuffer,
+  kind: "image" | "video",
+  contentType: string,
 ): Promise<string> {
-  // Step 1: Register the upload
+  const recipe = kind === "video"
+    ? "urn:li:digitalmediaRecipe:feedshare-video"
+    : "urn:li:digitalmediaRecipe:feedshare-image";
+
   const registerRes = await fetch(
     "https://api.linkedin.com/v2/assets?action=registerUpload",
     {
@@ -93,7 +98,7 @@ async function uploadImageToLinkedIn(
       },
       body: JSON.stringify({
         registerUploadRequest: {
-          recipes: ["urn:li:digitalmediaRecipe:feedshare-image"],
+          recipes: [recipe],
           owner: `urn:li:person:${memberUrn}`,
           serviceRelationships: [
             {
@@ -119,21 +124,21 @@ async function uploadImageToLinkedIn(
   if (!uploadUrl || !assetUrn)
     throw new Error("LinkedIn did not return upload URL or asset URN");
 
-  // Step 2: Upload the binary
   const uploadRes = await fetch(uploadUrl, {
     method: "PUT",
     headers: {
       Authorization: `Bearer ${accessToken}`,
-      "Content-Type": "image/jpeg",
+      "Content-Type": contentType,
     },
-    body: imageBuffer,
+    body: buffer,
   });
 
   if (!uploadRes.ok)
-    throw new Error(`LinkedIn image upload failed: ${uploadRes.status}`);
+    throw new Error(`LinkedIn media upload failed: ${uploadRes.status}`);
 
   return assetUrn;
 }
+
 
 // Publish a text-only post to LinkedIn personal profile.
 export async function publishToLinkedIn(
