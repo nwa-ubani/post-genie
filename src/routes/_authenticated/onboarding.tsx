@@ -102,6 +102,11 @@ function Onboarding() {
       const existingTimes = (existing as any).posting_times as string[] | null;
       setTimes(existingTimes?.length ? existingTimes.map((t) => t.slice(0, 5)) : [existing.posting_time?.slice(0, 5) ?? "09:00"]);
       setTones(existing.tone ? existing.tone.split(",").map((t: string) => t.trim()).filter(Boolean) : []);
+      const exSamples = (existing as any).writing_samples as string[] | null;
+      setSamples(exSamples?.length ? exSamples : [""]);
+      const exUrls = (existing as any).role_model_urls as string[] | null;
+      setRoleModelUrls(exUrls?.length ? exUrls : [""]);
+      setDraft((d) => ({ ...d, custom_instructions: (existing as any).custom_instructions ?? "" }));
     }
   }, [existing]);
 
