@@ -31,7 +31,7 @@ const EMAIL_TEMPLATES: Record<string, React.ComponentType<any>> = {
 }
 
 // Configuration
-const SITE_NAME = "grow-post-spark"
+const SITE_NAME = "Auto-post"
 const SENDER_DOMAIN = "notify.autopost.grownownow.com"
 const ROOT_DOMAIN = "autopost.grownownow.com"
 const FROM_DOMAIN = "autopost.grownownow.com"
