@@ -45,8 +45,6 @@ function AuthPage() {
 
   const passwordError = mode === "signup" && password.length > 0 ? validatePassword(password) : null;
 
-  if (isChildRoute) return <Outlet />;
-
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
       if (data.session) navigate({ to: "/dashboard" });
@@ -96,6 +94,8 @@ function AuthPage() {
     if (result.redirected) return;
     navigate({ to: "/dashboard" });
   };
+
+  if (isChildRoute) return <Outlet />;
 
   return (
     <div className="flex min-h-screen items-center justify-center px-6">
