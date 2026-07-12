@@ -45,7 +45,7 @@ export const getLinkedInAuthUrl = createServerFn({ method: "POST" })
       response_type: "code",
       client_id: clientId,
       redirect_uri: redirect,
-      scope: "w_member_social openid profile",
+      scope: "w_member_social",
       state,
     });
     return { url: `https://www.linkedin.com/oauth/v2/authorization?${params.toString()}`, redirect };
