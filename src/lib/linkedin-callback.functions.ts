@@ -10,8 +10,9 @@ export const saveLinkedInToken = createServerFn({ method: "POST" })
     const { verifyLinkedInOAuthState } = await import("@/lib/linkedin-oauth-state.server");
     const { userId } = verifyLinkedInOAuthState(data.state, clientSecret);
     const token = await exchangeLinkedInCode(data.code, data.redirectUri);
-    const profile = token.id_token
-      ? JSON.parse(Buffer.from(token.id_token.split(".")[1] ?? "", "base64url").toString("utf8")) as { sub?: string; name?: string }
+    const idPayload = token.id_token?.split(".")[1];
+    const profile = idPayload
+      ? JSON.parse(atob(idPayload.replace(/-/g, "+").replace(/_/g, "/").padEnd(Math.ceil(idPayload.length / 4) * 4, "="))) as { sub?: string; name?: string }
       : null;
     if (!profile?.sub) {
       throw new Error("LinkedIn connected, but did not return the profile ID needed for posting. Make sure Sign In with LinkedIn is enabled in your LinkedIn app.");
