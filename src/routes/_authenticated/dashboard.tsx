@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -8,7 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { runForCurrentUser } from "@/lib/posts.functions";
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
-import { Loader2, ExternalLink } from "lucide-react";
+import { Loader2, ExternalLink, Trash2 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({
@@ -27,6 +27,7 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
 
 function Dashboard() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const runNow = useServerFn(runForCurrentUser);
 
   const { data: profile, isLoading, refetch } = useQuery({
@@ -59,6 +60,11 @@ function Dashboard() {
     if (!isLoading && profile && !profile.onboarding_complete) navigate({ to: "/onboarding" });
   }, [isLoading, profile, navigate]);
 
+  const refreshAll = () => {
+    refetch();
+    queryClient.invalidateQueries({ queryKey: ["posts"] });
+  };
+
   const toggleActive = useMutation({
     mutationFn: async (active: boolean) => {
       const { error } = await supabase.from("profiles").update({ active }).eq("user_id", profile!.user_id);
@@ -69,13 +75,25 @@ function Dashboard() {
 
   const runMut = useMutation({
     mutationFn: () => runNow({ data: {} }),
-    onSuccess: () => { toast.success("Run complete — posts published"); refetch(); },
+    onSuccess: () => { toast.success("Run complete — posts published"); refreshAll(); },
     onError: (e: Error) => toast.error(e.message),
   });
 
   const testMut = useMutation({
     mutationFn: () => runNow({ data: { preview: true } }),
-    onSuccess: () => { toast.success("Test draft generated (not published)"); refetch(); },
+    onSuccess: () => { toast.success("Test draft generated (not published)"); refreshAll(); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const deleteMut = useMutation({
+    mutationFn: async (postId: string) => {
+      const { error } = await supabase.from("posts").delete().eq("id", postId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["posts"] });
+      toast.success("Post deleted");
+    },
     onError: (e: Error) => toast.error(e.message),
   });
 
@@ -149,9 +167,24 @@ function Dashboard() {
                 <span>{new Date(p.created_at).toLocaleString()}</span>
                 {p.keyword_hook && <span>· {p.keyword_hook}</span>}
               </div>
-              <Badge variant={p.status === "published" ? "default" : p.status === "failed" ? "destructive" : "secondary"}>
-                {p.status}
-              </Badge>
+              <div className="flex items-center gap-2">
+                <Badge variant={p.status === "published" ? "default" : p.status === "failed" ? "destructive" : "secondary"}>
+                  {p.status}
+                </Badge>
+                {(p.status === "draft" || p.status === "failed") && (
+                  <button
+                    onClick={() => deleteMut.mutate(p.id)}
+                    disabled={deleteMut.isPending}
+                    className="rounded p-1 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                    title="Delete this post"
+                    aria-label="Delete post"
+                  >
+                    {deleteMut.isPending && deleteMut.variables === p.id
+                      ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      : <Trash2 className="h-3.5 w-3.5" />}
+                  </button>
+                )}
+              </div>
             </div>
             <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed">{p.content}</p>
             {p.error && <p className="mt-2 text-xs text-destructive">{p.error}</p>}
