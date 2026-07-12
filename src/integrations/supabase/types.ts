@@ -136,24 +136,30 @@ export type Database = {
       }
       photos: {
         Row: {
+          content_type: string | null
           created_at: string
           file_path: string
           id: string
           last_used_at: string | null
+          media_type: string
           user_id: string
         }
         Insert: {
+          content_type?: string | null
           created_at?: string
           file_path: string
           id?: string
           last_used_at?: string | null
+          media_type?: string
           user_id: string
         }
         Update: {
+          content_type?: string | null
           created_at?: string
           file_path?: string
           id?: string
           last_used_at?: string | null
+          media_type?: string
           user_id?: string
         }
         Relationships: []
