@@ -144,6 +144,39 @@ function Settings() {
       </section>
 
       <section className="space-y-4">
+        <h2 className="font-display text-xl">Voice & style</h2>
+        <div className="space-y-1.5">
+          <Label>Extra instructions for the AI</Label>
+          <Textarea
+            rows={4}
+            value={form.custom_instructions ?? ""}
+            onChange={(e) => setForm({ ...form, custom_instructions: e.target.value })}
+            placeholder="e.g. Never use emojis. Always end with a question. Write in lowercase."
+          />
+          <p className="text-xs text-muted-foreground">Highest priority — overrides the defaults when they conflict.</p>
+        </div>
+        <div className="space-y-1.5">
+          <Label>Your writing samples (one per line, up to 5)</Label>
+          <Textarea
+            rows={8}
+            value={(form.writing_samples ?? []).join("\n---\n")}
+            onChange={(e) => setForm({ ...form, writing_samples: e.target.value.split(/\n---\n/).map((s: string) => s.trim()).filter(Boolean).slice(0, 5) })}
+            placeholder={"Paste one of your best posts…\n---\nAnother post…"}
+          />
+          <p className="text-xs text-muted-foreground">Separate multiple samples with a line containing only ---</p>
+        </div>
+        <div className="space-y-1.5">
+          <Label>Role-model URLs (comma-separated)</Label>
+          <Input
+            value={(form.role_model_urls ?? []).join(", ")}
+            onChange={(e) => setForm({ ...form, role_model_urls: e.target.value.split(",").map((s: string) => s.trim()).filter(Boolean).slice(0, 5) })}
+            placeholder="https://blog1.com/post, https://blog2.com/post"
+          />
+          <p className="text-xs text-muted-foreground">Public blog/newsletter pages only. We'll study their voice, not copy content.</p>
+        </div>
+      </section>
+
+      <section className="space-y-4">
         <h2 className="font-display text-xl">Schedule</h2>
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1.5">
