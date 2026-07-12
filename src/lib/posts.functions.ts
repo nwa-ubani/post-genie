@@ -118,7 +118,8 @@ export async function runDailyForUser(opts: {
 
   if (brandRow && profile.make_webhook_url) {
     try {
-      const webhookRes = await fetch(profile.make_webhook_url, {
+      const { safeFetch } = await import("./ssrf-guard.server");
+      const webhookRes = await safeFetch(profile.make_webhook_url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -134,9 +135,13 @@ export async function runDailyForUser(opts: {
         .update({ status: "published", published_at: now })
         .eq("id", brandRow.id);
     } catch (e) {
+      // Return only a generic message to avoid using error text as an SSRF oracle.
+      const safe = e instanceof Error && /private|reserved|not allowed|Invalid URL|resolve/i.test(e.message)
+        ? "Webhook URL not allowed"
+        : "Webhook delivery failed";
       await supabase
         .from("posts")
-        .update({ status: "failed", error: e instanceof Error ? e.message : String(e) })
+        .update({ status: "failed", error: safe })
         .eq("id", brandRow.id);
     }
   }

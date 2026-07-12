@@ -1,14 +1,21 @@
 // Fetch role-model URLs server-side and extract plain-text samples for style grounding.
+import { safeFetch } from "./ssrf-guard.server";
+
 export async function fetchStyleSamples(urls: string[] | null | undefined, maxCharsPerUrl = 2500): Promise<string[]> {
   if (!urls?.length) return [];
   const results = await Promise.allSettled(
     urls.slice(0, 5).map(async (raw) => {
       const url = raw.trim();
       if (!/^https?:\/\//i.test(url)) return "";
-      const r = await fetch(url, {
-        headers: { "User-Agent": "Mozilla/5.0 (compatible; GrowNowNowBot/1.0)" },
-        signal: AbortSignal.timeout(8000),
-      });
+      let r: Response;
+      try {
+        r = await safeFetch(url, {
+          headers: { "User-Agent": "Mozilla/5.0 (compatible; GrowNowNowBot/1.0)" },
+          signal: AbortSignal.timeout(8000),
+        });
+      } catch {
+        return "";
+      }
       if (!r.ok) return "";
       const html = await r.text();
       const text = html
