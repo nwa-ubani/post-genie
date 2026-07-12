@@ -211,3 +211,41 @@ export async function publishImageToLinkedIn(
   const id = r.headers.get("x-restli-id");
   return { urn: id ?? "" };
 }
+
+// Publish a post with a video to LinkedIn personal profile.
+export async function publishVideoToLinkedIn(
+  accessToken: string,
+  memberUrn: string,
+  text: string,
+  videoBuffer: ArrayBuffer,
+  contentType: string,
+) {
+  const assetUrn = await uploadMediaToLinkedIn(accessToken, memberUrn, videoBuffer, "video", contentType);
+
+  const r = await fetch("https://api.linkedin.com/v2/ugcPosts", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+      "X-Restli-Protocol-Version": "2.0.0",
+    },
+    body: JSON.stringify({
+      author: `urn:li:person:${memberUrn}`,
+      lifecycleState: "PUBLISHED",
+      specificContent: {
+        "com.linkedin.ugc.ShareContent": {
+          shareCommentary: { text },
+          shareMediaCategory: "VIDEO",
+          media: [{ status: "READY", media: assetUrn }],
+        },
+      },
+      visibility: { "com.linkedin.ugc.MemberNetworkVisibility": "PUBLIC" },
+    }),
+  });
+
+  if (!r.ok)
+    throw new Error(`LinkedIn video post failed: ${r.status} ${await r.text()}`);
+  const id = r.headers.get("x-restli-id");
+  return { urn: id ?? "" };
+}
+
