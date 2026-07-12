@@ -38,6 +38,7 @@ export default defineConfig({
         manifest: false,
         workbox: {
           globPatterns: ["**/*.{js,css,html,svg,png,ico,webp,woff2}"],
+          importScripts: ["/push-handlers.js"],
           navigateFallback: "/",
           navigateFallbackDenylist: [
             /^\/api\//,
