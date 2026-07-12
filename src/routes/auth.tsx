@@ -101,8 +101,18 @@ function AuthPage() {
           {mode === "signup" ? "Create your account" : "Welcome back"}
         </h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          {mode === "signup" ? "12 quick questions and you're posting daily." : "Pick up where you left off."}
+          {mode === "signup" ? "A few quick questions and you're posting daily." : "Pick up where you left off."}
         </p>
+
+        {checkEmail && (
+          <div className="mt-6 rounded-xl border border-accent/40 bg-accent/10 p-4 text-sm">
+            <p className="font-medium">Check your email</p>
+            <p className="mt-1 text-muted-foreground">
+              We just sent a verification link to <span className="font-medium text-foreground">{email}</span>.
+              Click it to activate your account and continue onboarding.
+            </p>
+          </div>
+        )}
 
         <Button variant="outline" className="mt-8 w-full" onClick={google} disabled={loading}>
           Continue with Google

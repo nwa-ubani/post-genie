@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
+import { useEffect } from "react";
 import { runForCurrentUser } from "@/lib/posts.functions";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -14,6 +15,15 @@ export const Route = createFileRoute("/_authenticated/preview")({
 
 function Preview() {
   const runNow = useServerFn(runForCurrentUser);
+
+  // Mark onboarding complete so /dashboard doesn't bounce back to /onboarding
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      if (data.user) {
+        supabase.from("profiles").update({ onboarding_complete: true } as any).eq("user_id", data.user.id);
+      }
+    });
+  }, []);
 
   const { data: posts, refetch } = useQuery({
     queryKey: ["posts"],
