@@ -2,24 +2,40 @@
   "name": "Auto-Post",
   "short_name": "Auto-Post",
   "description": "Auto-Post researches your industry with live Google data, writes a human thought leader post, and publishes it to LinkedIn for you every day.",
-  "start_url": "/",
+  "start_url": "/dashboard",
+  "id": "/",
   "display": "standalone",
   "background_color": "#FAF9F6",
   "theme_color": "#0F172A",
   "orientation": "portrait",
   "scope": "/",
+  "categories": ["business", "productivity", "social"],
   "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
     {
-      "src": "/icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any"
+      "name": "Dashboard",
+      "short_name": "Dashboard",
+      "description": "View today's posts and status",
+      "url": "/dashboard",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
     },
     {
-      "src": "/icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any"
+      "name": "Media library",
+      "short_name": "Media",
+      "description": "Manage photos and videos",
+      "url": "/photos",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Settings",
+      "short_name": "Settings",
+      "description": "Edit brief, voice and schedule",
+      "url": "/settings",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
     }
   ]
 }

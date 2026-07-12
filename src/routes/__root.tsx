@@ -95,6 +95,7 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const router = useRouter();
   useEffect(() => {
+    registerPwa();
     const { data: sub } = supabase.auth.onAuthStateChange((event) => {
       if (event !== "SIGNED_IN" && event !== "SIGNED_OUT" && event !== "USER_UPDATED") return;
       router.invalidate();
@@ -104,7 +105,9 @@ function RootComponent() {
   }, [queryClient, router]);
   return (
     <QueryClientProvider client={queryClient}>
+      <OfflineIndicator />
       <Outlet />
+      <InstallPrompt />
       <Toaster />
     </QueryClientProvider>
   );
