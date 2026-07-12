@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet, useMatchRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -34,6 +34,8 @@ export const Route = createFileRoute("/auth")({
 
 function AuthPage() {
   const navigate = useNavigate();
+  const matchRoute = useMatchRoute();
+  const isChildRoute = Boolean(matchRoute({ to: "/auth/linkedin/callback", fuzzy: true }));
   const [mode, setMode] = useState<"signin" | "signup">("signup");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -42,6 +44,8 @@ function AuthPage() {
   const [checkEmail, setCheckEmail] = useState(false);
 
   const passwordError = mode === "signup" && password.length > 0 ? validatePassword(password) : null;
+
+  if (isChildRoute) return <Outlet />;
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
