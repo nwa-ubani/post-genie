@@ -239,6 +239,7 @@ export type Database = {
           notify_token_expiring: boolean
           onboarding_complete: boolean
           post_targets: string[] | null
+          posting_days: number[] | null
           posting_time: string | null
           posting_times: string[]
           role: string | null
@@ -268,6 +269,7 @@ export type Database = {
           notify_token_expiring?: boolean
           onboarding_complete?: boolean
           post_targets?: string[] | null
+          posting_days?: number[] | null
           posting_time?: string | null
           posting_times?: string[]
           role?: string | null
@@ -297,6 +299,7 @@ export type Database = {
           notify_token_expiring?: boolean
           onboarding_complete?: boolean
           post_targets?: string[] | null
+          posting_days?: number[] | null
           posting_time?: string | null
           posting_times?: string[]
           role?: string | null
