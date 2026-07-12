@@ -23,6 +23,7 @@ type Profile = {
   description?: string; twitter_handle?: string; linkedin_company_url?: string; linkedin_personal_url?: string;
   tone?: string; admired_brands?: string[]; content_topics?: string[];
   posting_time?: string; posting_times?: string[]; timezone?: string;
+  custom_instructions?: string; writing_samples?: string[]; role_model_urls?: string[];
 };
 
 const TONES = ["Authoritative", "Friendly", "Witty", "Bold", "Warm", "Analytical"];
