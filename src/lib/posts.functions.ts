@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { searchSerper, buildQueries } from "@/lib/serper.functions";
 import { generateBrandPost, generatePersonalPost } from "@/lib/gemini.functions";
-import { publishToLinkedIn, publishImageToLinkedIn } from "@/lib/linkedin.functions";
+import { publishToLinkedIn, publishImageToLinkedIn, publishVideoToLinkedIn } from "@/lib/linkedin.functions";
 import { fetchStyleSamples } from "@/lib/style-scrape.functions";
 
 export async function runDailyForUser(opts: {
@@ -56,6 +56,8 @@ export async function runDailyForUser(opts: {
 
   let photoId: string | null = null;
   let photoPath: string | null = null;
+  let photoMediaType: "image" | "video" = "image";
+  let photoContentType: string = "image/jpeg";
 
   if (photos?.length) {
     const yesterday = Date.now() - 86400000;
@@ -66,6 +68,8 @@ export async function runDailyForUser(opts: {
     const pick = pool[Math.floor(Math.random() * pool.length)];
     photoId = pick.id;
     photoPath = pick.file_path;
+    photoMediaType = pick.media_type === "video" ? "video" : "image";
+    photoContentType = pick.content_type ?? (photoMediaType === "video" ? "video/mp4" : "image/jpeg");
     if (!preview) {
       await supabase
         .from("photos")
@@ -73,6 +77,7 @@ export async function runDailyForUser(opts: {
         .eq("id", pick.id);
     }
   }
+
 
   const now = new Date().toISOString();
 
@@ -149,14 +154,11 @@ export async function runDailyForUser(opts: {
         const { data: fileData, error: dlErr } = await supabase.storage
           .from("photos")
           .download(photoPath);
-        if (dlErr || !fileData) throw new Error(`Could not download photo: ${dlErr?.message}`);
-        const imageBuffer = await fileData.arrayBuffer();
-        const result = await publishImageToLinkedIn(
-          tokens.access_token,
-          tokens.linkedin_member_urn,
-          personal.content,
-          imageBuffer,
-        );
+        if (dlErr || !fileData) throw new Error(`Could not download media: ${dlErr?.message}`);
+        const buffer = await fileData.arrayBuffer();
+        const result = photoMediaType === "video"
+          ? await publishVideoToLinkedIn(tokens.access_token, tokens.linkedin_member_urn, personal.content, buffer, photoContentType)
+          : await publishImageToLinkedIn(tokens.access_token, tokens.linkedin_member_urn, personal.content, buffer);
         urn = result.urn;
       } else {
         const result = await publishToLinkedIn(
@@ -166,6 +168,7 @@ export async function runDailyForUser(opts: {
         );
         urn = result.urn;
       }
+
       await supabase
         .from("posts")
         .update({ status: "published", published_at: now, linkedin_post_urn: urn })

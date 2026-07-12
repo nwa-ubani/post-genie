@@ -9,10 +9,10 @@ import { Trash2, Upload } from "lucide-react";
 export const Route = createFileRoute("/_authenticated/photos")({
   head: () => ({
     meta: [
-      { title: "Photos — GrowNowNow" },
-      { name: "description", content: "Upload and manage the headshots and product photos GrowNowNow attaches to your daily LinkedIn posts." },
-      { property: "og:title", content: "Photos — GrowNowNow" },
-      { property: "og:description", content: "Upload and manage the images used in your daily LinkedIn posts." },
+      { title: "Media — GrowNowNow" },
+      { name: "description", content: "Upload and manage the images and videos GrowNowNow attaches to your daily LinkedIn posts." },
+      { property: "og:title", content: "Media — GrowNowNow" },
+      { property: "og:description", content: "Upload and manage the media used in your daily LinkedIn posts." },
       { property: "og:url", content: "https://autopost.grownownow.com/photos" },
       { name: "robots", content: "noindex" },
     ],
@@ -21,7 +21,10 @@ export const Route = createFileRoute("/_authenticated/photos")({
   component: Photos,
 });
 
-const MAX = 5 * 1024 * 1024;
+const MAX_IMAGE = 5 * 1024 * 1024; // 5MB
+const MAX_VIDEO = 100 * 1024 * 1024; // 100MB — LinkedIn caps at 200MB
+const IMAGE_TYPES = ["image/jpeg", "image/png"];
+const VIDEO_TYPES = ["video/mp4", "video/quicktime", "video/webm"];
 
 function Photos() {
   const { data: photos, refetch } = useQuery({
@@ -51,12 +54,20 @@ function Photos() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not signed in");
       for (const f of Array.from(files)) {
-        if (f.size > MAX) throw new Error(`${f.name} is larger than 5MB`);
-        if (!["image/jpeg", "image/png"].includes(f.type)) throw new Error(`${f.name} must be JPG or PNG`);
+        const isImage = IMAGE_TYPES.includes(f.type);
+        const isVideo = VIDEO_TYPES.includes(f.type);
+        if (!isImage && !isVideo) throw new Error(`${f.name} must be JPG, PNG, MP4, MOV or WebM`);
+        const limit = isImage ? MAX_IMAGE : MAX_VIDEO;
+        if (f.size > limit) throw new Error(`${f.name} is larger than ${isImage ? "5MB" : "100MB"}`);
         const path = `${user.id}/${crypto.randomUUID()}-${f.name}`;
-        const { error: upErr } = await supabase.storage.from("photos").upload(path, f);
+        const { error: upErr } = await supabase.storage.from("photos").upload(path, f, { contentType: f.type });
         if (upErr) throw upErr;
-        const { error: insErr } = await supabase.from("photos").insert({ user_id: user.id, file_path: path });
+        const { error: insErr } = await supabase.from("photos").insert({
+          user_id: user.id,
+          file_path: path,
+          media_type: isVideo ? "video" : "image",
+          content_type: f.type,
+        } as never);
         if (insErr) throw insErr;
       }
     },
@@ -75,32 +86,44 @@ function Photos() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="font-display text-4xl">Photos</h1>
-        <p className="mt-1 text-muted-foreground">JPG/PNG, max 5MB. We rotate through these on your personal posts.</p>
+        <h1 className="font-display text-4xl">Media</h1>
+        <p className="mt-1 text-muted-foreground">Images (JPG/PNG, up to 5MB) or videos (MP4/MOV/WebM, up to 100MB). We rotate through these on your personal posts.</p>
       </div>
 
       <label className="flex cursor-pointer items-center gap-2 self-start rounded-full bg-primary px-5 py-2.5 text-sm text-primary-foreground">
         <Upload className="h-4 w-4" />
-        Upload photos
-        <input type="file" accept="image/jpeg,image/png" multiple className="hidden"
-          onChange={(e) => e.target.files && upload.mutate(e.target.files)} />
+        Upload media
+        <input
+          type="file"
+          accept={[...IMAGE_TYPES, ...VIDEO_TYPES].join(",")}
+          multiple
+          className="hidden"
+          onChange={(e) => e.target.files && upload.mutate(e.target.files)}
+        />
       </label>
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
-        {photos?.map((p) => (
-          <div key={p.id} className="group relative overflow-hidden rounded-xl border bg-card">
-            {urls[p.id] ? (
-              <img src={urls[p.id]} alt="" className="aspect-square w-full object-cover" />
-            ) : <div className="aspect-square bg-muted" />}
-            <Button size="icon" variant="destructive" aria-label="Delete photo" className="absolute right-2 top-2 opacity-0 transition group-hover:opacity-100"
-              onClick={() => del.mutate({ id: p.id, file_path: p.file_path })}>
-              <Trash2 className="h-4 w-4" />
-            </Button>
-          </div>
-        ))}
+        {photos?.map((p) => {
+          const isVideo = (p as { media_type?: string }).media_type === "video";
+          return (
+            <div key={p.id} className="group relative overflow-hidden rounded-xl border bg-card">
+              {urls[p.id] ? (
+                isVideo ? (
+                  <video src={urls[p.id]} className="aspect-square w-full object-cover" muted playsInline controls />
+                ) : (
+                  <img src={urls[p.id]} alt="" className="aspect-square w-full object-cover" />
+                )
+              ) : <div className="aspect-square bg-muted" />}
+              <Button size="icon" variant="destructive" aria-label="Delete media" className="absolute right-2 top-2 opacity-0 transition group-hover:opacity-100"
+                onClick={() => del.mutate({ id: p.id, file_path: p.file_path })}>
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
+          );
+        })}
         {!photos?.length && (
           <div className="col-span-full rounded-2xl border border-dashed p-12 text-center text-muted-foreground">
-            No photos yet. Upload a few headshots, action shots, or product photos.
+            No media yet. Upload a few headshots, action shots, product photos, or short videos.
           </div>
         )}
       </div>
