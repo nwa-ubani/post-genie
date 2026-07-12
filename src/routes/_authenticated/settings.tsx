@@ -182,11 +182,66 @@ function Settings() {
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1.5">
             <Label>Posting time</Label>
-            <Input type="time" value={form.posting_time ?? ""} onChange={(e) => setForm({ ...form, posting_time: e.target.value })} />
+            <Input
+              type="time"
+              value={form.posting_time ?? ""}
+              onChange={(e) => {
+                const val = e.target.value;
+                setForm({ ...form, posting_time: val });
+                if (val && /^\d{2}:\d{2}$/.test(val)) {
+                  const now = new Date();
+                  const nowMinutes = now.getHours() * 60 + now.getMinutes();
+                  const windowStart = Math.floor(nowMinutes / 15) * 15;
+                  const windowEnd = windowStart + 15;
+                  const [h, m] = val.split(":").map(Number);
+                  const picked = h * 60 + m;
+                  if (picked >= windowStart && picked < windowEnd) {
+                    const nextH = Math.floor(windowEnd / 60) % 24;
+                    const nextM = windowEnd % 60;
+                    const nextLabel = `${String(nextH).padStart(2, "0")}:${String(nextM).padStart(2, "0")}`;
+                    toast.warning(
+                      `This time is in the current 15-minute window. Your post will go out at the next available run — pick a time after ${nextLabel} if you want it to post tomorrow.`
+                    );
+                  }
+                }
+              }}
+            />
           </div>
           <div className="space-y-1.5">
             <Label>Timezone</Label>
             <Input value={form.timezone ?? ""} onChange={(e) => setForm({ ...form, timezone: e.target.value })} />
+          </div>
+        </div>
+        <div className="space-y-2">
+          <Label>Which days should we post?</Label>
+          <div className="flex flex-wrap gap-2">
+            {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((label, idx) => {
+              const days: number[] = form.posting_days ?? [0, 1, 2, 3, 4, 5, 6];
+              const active = days.includes(idx);
+              return (
+                <button
+                  type="button"
+                  key={label}
+                  onClick={() => {
+                    const current: number[] = form.posting_days ?? [0, 1, 2, 3, 4, 5, 6];
+                    if (active) {
+                      if (current.length <= 1) {
+                        toast.error("You must post at least one day per week.");
+                        return;
+                      }
+                      setForm({ ...form, posting_days: current.filter((d) => d !== idx).sort() });
+                    } else {
+                      setForm({ ...form, posting_days: [...current, idx].sort() });
+                    }
+                  }}
+                  className={`h-10 w-14 rounded-md border text-sm font-medium transition ${
+                    active ? "bg-foreground text-background border-foreground" : "bg-background text-foreground border-border hover:bg-muted"
+                  }`}
+                >
+                  {label}
+                </button>
+              );
+            })}
           </div>
         </div>
         <div className="space-y-1.5">
