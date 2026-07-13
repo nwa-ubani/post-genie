@@ -1,7 +1,7 @@
 {
   "name": "Auto-Post",
   "short_name": "Auto-Post",
-  "description": "Auto-Post researches your industry with live Google data, writes human-sounding thought leader posts, and publishes them on LinkedIn for you.",
+  "description": "Auto-Post researches your industry with live Google data, writes a human thought leader post, and publishes it to LinkedIn for you every day.",
   "start_url": "/dashboard",
   "id": "/",
   "display": "standalone",
