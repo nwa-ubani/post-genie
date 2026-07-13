@@ -5,9 +5,9 @@ export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       { title: "Auto-Post — Daily thought leader posts on LinkedIn, on autopilot" },
-      { name: "description", content: "Auto-Post researches your industry with live Google data, writes a human thought leader post, and publishes it to LinkedIn for you every day." },
+      { name: "description", content: "Auto-Post researches your industry with live Google data, writes human-sounding thought leader posts, and publishes them on LinkedIn for you." },
       { property: "og:title", content: "Auto-Post — Daily thought leader posts on LinkedIn, on autopilot" },
-      { property: "og:description", content: "Live Google research plus AI drafting in your own voice — thought leader content published to LinkedIn every day." },
+      { property: "og:description", content: "Auto-Post researches your industry with live Google data, writes human-sounding thought leader posts, and publishes them on LinkedIn for you." },
       { property: "og:url", content: "https://autopost.grownownow.com/" },
     ],
     links: [{ rel: "canonical", href: "https://autopost.grownownow.com/" }],
@@ -33,8 +33,8 @@ function Landing() {
           <span className="headline-underline">every single day.</span>
         </h1>
         <p className="mx-auto mt-6 max-w-xl text-lg text-muted-foreground">
-          Auto-Post researches your industry with live Google data, writes a HUMAN thought leader
-          post, and publishes thought leader content on LinkedIn for you.
+          Auto-Post researches your industry with live Google data, writes human-sounding thought leader
+          posts, and publishes them on LinkedIn for you.
         </p>
         <div className="mt-10 flex justify-center gap-3">
           <Link to="/auth" className="rounded-full bg-primary px-6 py-3 text-sm font-medium text-primary-foreground">
