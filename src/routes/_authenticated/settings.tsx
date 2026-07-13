@@ -56,8 +56,24 @@ function Settings() {
   const save = useMutation({
     mutationFn: async () => {
       const { user_id, created_at, updated_at, onboarding_complete, ...patch } = form;
+
+      // Validate posting days
+      const days: number[] = patch.posting_days ?? [0, 1, 2, 3, 4, 5, 6];
+      if (!days.length) throw new Error("You need at least one posting day.");
+
+      // Validate + de-dupe posting times
+      const rawTimes: string[] = (patch.posting_times?.length ? patch.posting_times : (patch.posting_time ? [patch.posting_time] : [])) as string[];
+      const timeRegex = /^([01]\d|2[0-3]):[0-5]\d$/;
+      for (const t of rawTimes) {
+        if (!timeRegex.test(t)) throw new Error(`"${t || "empty"}" isn't a valid time. Use HH:MM (24-hour).`);
+      }
+      const uniqueTimes = Array.from(new Set(rawTimes)).sort();
+      if (!uniqueTimes.length) throw new Error("Add at least one posting time.");
+
       const cleanedPatch = {
         ...patch,
+        posting_times: uniqueTimes,
+        posting_time: null,
         linkedin_personal_url: normalizeLinkedInProfile(patch.linkedin_personal_url ?? ""),
       };
       const { error } = await supabase.from("profiles").update(cleanedPatch as any).eq("user_id", profile!.user_id);
@@ -66,6 +82,7 @@ function Settings() {
     onSuccess: () => { toast.success("Saved"); refetch(); },
     onError: (e: Error) => toast.error(e.message),
   });
+
 
   const connectLinkedIn = async () => {
     try {
