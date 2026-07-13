@@ -177,41 +177,9 @@ function Settings() {
         </div>
       </section>
 
-      <section className="space-y-4">
+      <section className="space-y-5">
         <h2 className="font-display text-xl">Schedule</h2>
-        <div className="grid grid-cols-2 gap-3">
-          <div className="space-y-1.5">
-            <Label>Posting time</Label>
-            <Input
-              type="time"
-              value={form.posting_time ?? ""}
-              onChange={(e) => {
-                const val = e.target.value;
-                setForm({ ...form, posting_time: val });
-                if (val && /^\d{2}:\d{2}$/.test(val)) {
-                  const now = new Date();
-                  const nowMinutes = now.getHours() * 60 + now.getMinutes();
-                  const windowStart = Math.floor(nowMinutes / 15) * 15;
-                  const windowEnd = windowStart + 15;
-                  const [h, m] = val.split(":").map(Number);
-                  const picked = h * 60 + m;
-                  if (picked >= windowStart && picked < windowEnd) {
-                    const nextH = Math.floor(windowEnd / 60) % 24;
-                    const nextM = windowEnd % 60;
-                    const nextLabel = `${String(nextH).padStart(2, "0")}:${String(nextM).padStart(2, "0")}`;
-                    toast.warning(
-                      `This time is in the current 15-minute window. Your post will go out at the next available run — pick a time after ${nextLabel} if you want it to post tomorrow.`
-                    );
-                  }
-                }
-              }}
-            />
-          </div>
-          <div className="space-y-1.5">
-            <Label>Timezone</Label>
-            <Input value={form.timezone ?? ""} onChange={(e) => setForm({ ...form, timezone: e.target.value })} />
-          </div>
-        </div>
+
         <div className="space-y-2">
           <Label>Which days should we post?</Label>
           <div className="flex flex-wrap gap-2">
@@ -226,7 +194,7 @@ function Settings() {
                     const current: number[] = form.posting_days ?? [0, 1, 2, 3, 4, 5, 6];
                     if (active) {
                       if (current.length <= 1) {
-                        toast.error("You must post at least one day per week.");
+                        toast.message("You need at least one posting day.");
                         return;
                       }
                       setForm({ ...form, posting_days: current.filter((d) => d !== idx).sort() });
@@ -234,8 +202,10 @@ function Settings() {
                       setForm({ ...form, posting_days: [...current, idx].sort() });
                     }
                   }}
-                  className={`h-10 w-14 rounded-md border text-sm font-medium transition ${
-                    active ? "bg-foreground text-background border-foreground" : "bg-background text-foreground border-border hover:bg-muted"
+                  className={`h-10 min-w-16 rounded-full border px-4 text-sm font-medium transition ${
+                    active
+                      ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                      : "bg-background text-muted-foreground border-border hover:border-foreground hover:text-foreground"
                   }`}
                 >
                   {label}
@@ -244,6 +214,77 @@ function Settings() {
             })}
           </div>
         </div>
+
+        <div className="space-y-2">
+          <Label>Posting times</Label>
+          <p className="text-xs text-muted-foreground">Each time triggers a fresh, independent post. Add as many as you like.</p>
+          <div className="space-y-2">
+            {((form.posting_times?.length ? form.posting_times : (form.posting_time ? [form.posting_time] : [])) as string[]).map((t: string, i: number) => {
+              const times: string[] = form.posting_times?.length ? form.posting_times : (form.posting_time ? [form.posting_time] : []);
+              const active = !!t && /^\d{2}:\d{2}$/.test(t);
+              return (
+                <div key={i} className="flex items-center gap-2">
+                  <Input
+                    type="time"
+                    value={t}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      const next = [...times];
+                      next[i] = val;
+                      setForm({ ...form, posting_times: next, posting_time: null });
+                      if (val && /^\d{2}:\d{2}$/.test(val)) {
+                        const now = new Date();
+                        const nowMinutes = now.getHours() * 60 + now.getMinutes();
+                        const windowStart = Math.floor(nowMinutes / 15) * 15;
+                        const windowEnd = windowStart + 15;
+                        const [h, m] = val.split(":").map(Number);
+                        const picked = h * 60 + m;
+                        if (picked >= windowStart && picked < windowEnd) {
+                          const nextH = Math.floor(windowEnd / 60) % 24;
+                          const nextM = windowEnd % 60;
+                          const nextLabel = `${String(nextH).padStart(2, "0")}:${String(nextM).padStart(2, "0")}`;
+                          toast.warning(
+                            `This time is in the current 15-minute window. Your post will go out at the next available run — pick a time after ${nextLabel} if you want it to post tomorrow.`
+                          );
+                        }
+                      }
+                    }}
+                    className={`max-w-40 ${active ? "border-primary bg-primary/5 font-medium text-foreground" : ""}`}
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => {
+                      const next = times.filter((_, idx) => idx !== i);
+                      setForm({ ...form, posting_times: next, posting_time: null });
+                    }}
+                    aria-label="Remove time slot"
+                  >
+                    ×
+                  </Button>
+                </div>
+              );
+            })}
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                const times: string[] = form.posting_times?.length ? form.posting_times : (form.posting_time ? [form.posting_time] : []);
+                setForm({ ...form, posting_times: [...times, "09:00"], posting_time: null });
+              }}
+            >
+              + Add time
+            </Button>
+          </div>
+        </div>
+
+        <div className="space-y-1.5">
+          <Label>Timezone</Label>
+          <Input value={form.timezone ?? ""} onChange={(e) => setForm({ ...form, timezone: e.target.value })} />
+        </div>
+
         <div className="space-y-1.5">
           <Label>Make.com webhook URL <span className="text-xs text-muted-foreground">(for company-page handoff)</span></Label>
           <Input value={form.make_webhook_url ?? ""} onChange={(e) => setForm({ ...form, make_webhook_url: e.target.value })} placeholder="https://hook.make.com/…" />
