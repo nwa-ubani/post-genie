@@ -33,8 +33,7 @@ function Landing() {
           <span className="headline-underline">every single day.</span>
         </h1>
         <p className="mx-auto mt-6 max-w-xl text-lg text-muted-foreground">
-          Auto-Post researches your industry with live Google data, writes a HUMAN thought leader
-          post, and publishes thought leader content on LinkedIn for you.
+          Auto-Post researches your industry with live Google data, writes HUMAN thought leader posts, and publishes them on LinkedIn for you.
         </p>
         <div className="mt-10 flex justify-center gap-3">
           <Link to="/auth" className="rounded-full bg-primary px-6 py-3 text-sm font-medium text-primary-foreground">
