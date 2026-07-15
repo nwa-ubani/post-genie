@@ -111,7 +111,73 @@ export const Route = createFileRoute("/api/public/cron/daily-posts")({
           }
         }
 
-        return Response.json({ processed: results.length, results });
+        // ==== LinkedIn token expiry reminders ====
+        const expiryResults: any[] = [];
+        try {
+          const THRESHOLDS = [14, 7, 4, 2, 1];
+          const horizon = new Date(Date.now() + 14 * 86400000).toISOString();
+          const { data: expiring } = await supabaseAdmin
+            .from("linkedin_tokens")
+            .select("user_id, expires_at")
+            .lte("expires_at", horizon)
+            .gt("expires_at", new Date().toISOString());
+
+          for (const tok of expiring ?? []) {
+            const expiresAt = tok.expires_at as string | null;
+            if (!expiresAt) continue;
+            const msLeft = new Date(expiresAt).getTime() - Date.now();
+            const daysLeft = msLeft / 86400000;
+            const threshold = THRESHOLDS.find((t) => daysLeft <= t);
+            if (!threshold) continue;
+
+            const { data: alreadySent } = await supabaseAdmin
+              .from("token_expiry_emails")
+              .select("id")
+              .eq("user_id", tok.user_id)
+              .eq("threshold", threshold)
+              .eq("token_expires_at", expiresAt)
+              .maybeSingle();
+            if (alreadySent) continue;
+
+            // Fetch profile + email
+            const { data: profile } = await supabaseAdmin
+              .from("profiles")
+              .select("name, notify_token_expiring")
+              .eq("user_id", tok.user_id)
+              .maybeSingle();
+            if (profile?.notify_token_expiring === false) continue;
+
+            const { data: userData } = await supabaseAdmin.auth.admin.getUserById(tok.user_id);
+            const email = userData?.user?.email;
+            if (!email) continue;
+
+            try {
+              const { sendTransactionalEmailServer } = await import("@/lib/email-send.server");
+              await sendTransactionalEmailServer({
+                templateName: "linkedin-expiry",
+                recipientEmail: email,
+                templateData: {
+                  name: profile?.name,
+                  daysRemaining: Math.max(1, Math.ceil(daysLeft)),
+                  reconnectUrl: "https://autopost.grownownow.com/settings",
+                },
+                idempotencyKey: `linkedin-expiry-${tok.user_id}-${threshold}-${expiresAt}`,
+              });
+              await supabaseAdmin.from("token_expiry_emails").insert({
+                user_id: tok.user_id,
+                threshold,
+                token_expires_at: expiresAt,
+              });
+              expiryResults.push({ userId: tok.user_id, threshold, ok: true });
+            } catch (e) {
+              expiryResults.push({ userId: tok.user_id, threshold, ok: false, error: e instanceof Error ? e.message : String(e) });
+            }
+          }
+        } catch (e) {
+          console.error("expiry reminder loop failed", e);
+        }
+
+        return Response.json({ processed: results.length, results, expiryReminders: expiryResults });
       },
     },
   },
