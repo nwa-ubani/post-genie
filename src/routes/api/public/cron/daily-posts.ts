@@ -85,18 +85,7 @@ export const Route = createFileRoute("/api/public/cron/daily-posts")({
           return list.some((t) => inWindow(t, tz));
         });
 
-        if (error) return new Response(JSON.stringify({ error: error.message }), { status: 500 });
 
-        const due = (profiles ?? []).filter((p: any) => {
-          const tz = p.timezone || "UTC";
-          if (!isDueToday(p.posting_days ?? null, tz)) return false;
-          const list: string[] = p.posting_times?.length
-            ? p.posting_times
-            : p.posting_time
-              ? [p.posting_time]
-              : [];
-          return list.some((t) => inWindow(t, tz));
-        });
 
         const results: any[] = [];
         for (const p of due) {
