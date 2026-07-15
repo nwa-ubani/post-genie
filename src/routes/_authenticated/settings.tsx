@@ -431,7 +431,52 @@ function Settings() {
 
         <div className="space-y-1.5">
           <Label>Timezone</Label>
-          <Input value={form.timezone ?? ""} onChange={(e) => setForm({ ...form, timezone: e.target.value })} />
+          <Popover open={tzOpen} onOpenChange={setTzOpen}>
+            <PopoverTrigger asChild>
+              <Button
+                type="button"
+                variant="outline"
+                role="combobox"
+                aria-expanded={tzOpen}
+                className="w-full justify-between font-normal"
+              >
+                <span className="truncate">
+                  {form.timezone
+                    ? `${form.timezone} (${getTzOffsetLabel(form.timezone)})`
+                    : "Select a timezone"}
+                </span>
+                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+              <Command>
+                <CommandInput placeholder="Search timezone…" />
+                <CommandList>
+                  <CommandEmpty>No timezone found.</CommandEmpty>
+                  <CommandGroup>
+                    {tzOptions.map(({ tz, label }) => (
+                      <CommandItem
+                        key={tz}
+                        value={label}
+                        onSelect={() => {
+                          setForm({ ...form, timezone: tz });
+                          setTzDetected(false);
+                          setTzOpen(false);
+                        }}
+                      >
+                        <Check className={cn("mr-2 h-4 w-4", form.timezone === tz ? "opacity-100" : "opacity-0")} />
+                        {label}
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                </CommandList>
+              </Command>
+            </PopoverContent>
+          </Popover>
+          <p className="text-xs text-muted-foreground">Your posting times run in this timezone.</p>
+          {tzDetected && (
+            <p className="text-xs text-muted-foreground">Detected from your device — change it if this isn't where you post from.</p>
+          )}
         </div>
 
         <div className="space-y-1.5">
