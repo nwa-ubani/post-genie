@@ -400,6 +400,30 @@ export type Database = {
         }
         Relationships: []
       }
+      token_expiry_emails: {
+        Row: {
+          id: string
+          sent_at: string
+          threshold: number
+          token_expires_at: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          sent_at?: string
+          threshold: number
+          token_expires_at: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          sent_at?: string
+          threshold?: number
+          token_expires_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string
