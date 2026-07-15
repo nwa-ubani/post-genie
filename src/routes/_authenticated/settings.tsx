@@ -1,15 +1,39 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Check, ChevronsUpDown } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
 import { getLinkedInAuthUrl } from "@/lib/linkedin.functions";
 import { PushNotificationsCard } from "@/components/PushNotificationsCard";
+
+const getBrowserTz = () => {
+  try { return Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC"; } catch { return "UTC"; }
+};
+
+const getTzOffsetLabel = (tz: string): string => {
+  try {
+    const parts = new Intl.DateTimeFormat("en-US", { timeZone: tz, timeZoneName: "shortOffset" }).formatToParts(new Date());
+    const off = parts.find((p) => p.type === "timeZoneName")?.value ?? "";
+    return off.replace(/^GMT/, "GMT").replace(/^UTC/, "GMT") || "GMT";
+  } catch { return "GMT"; }
+};
+
+const getAllTimezones = (): string[] => {
+  try {
+    // @ts-ignore
+    const list: string[] = typeof Intl.supportedValuesOf === "function" ? Intl.supportedValuesOf("timeZone") : [];
+    return list.length ? list : ["UTC"];
+  } catch { return ["UTC"]; }
+};
 
 export const Route = createFileRoute("/_authenticated/settings")({
   head: () => ({
@@ -42,7 +66,24 @@ function Settings() {
   });
 
   const [form, setForm] = useState<Record<string, any>>({});
-  useEffect(() => { if (profile) setForm(profile); }, [profile]);
+  const [tzDetected, setTzDetected] = useState(false);
+  const [tzOpen, setTzOpen] = useState(false);
+  useEffect(() => {
+    if (profile) {
+      const next = { ...profile } as Record<string, any>;
+      if (!next.timezone) {
+        next.timezone = getBrowserTz();
+        setTzDetected(true);
+      }
+      setForm(next);
+    }
+  }, [profile]);
+
+  const timezones = useMemo(() => getAllTimezones(), []);
+  const tzOptions = useMemo(
+    () => timezones.map((tz) => ({ tz, label: `${tz} (${getTzOffsetLabel(tz)})` })),
+    [timezones],
+  );
 
   const normalizeLinkedInProfile = (value: string) => {
     const cleaned = value.trim();
@@ -390,7 +431,52 @@ function Settings() {
 
         <div className="space-y-1.5">
           <Label>Timezone</Label>
-          <Input value={form.timezone ?? ""} onChange={(e) => setForm({ ...form, timezone: e.target.value })} />
+          <Popover open={tzOpen} onOpenChange={setTzOpen}>
+            <PopoverTrigger asChild>
+              <Button
+                type="button"
+                variant="outline"
+                role="combobox"
+                aria-expanded={tzOpen}
+                className="w-full justify-between font-normal"
+              >
+                <span className="truncate">
+                  {form.timezone
+                    ? `${form.timezone} (${getTzOffsetLabel(form.timezone)})`
+                    : "Select a timezone"}
+                </span>
+                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+              <Command>
+                <CommandInput placeholder="Search timezone…" />
+                <CommandList>
+                  <CommandEmpty>No timezone found.</CommandEmpty>
+                  <CommandGroup>
+                    {tzOptions.map(({ tz, label }) => (
+                      <CommandItem
+                        key={tz}
+                        value={label}
+                        onSelect={() => {
+                          setForm({ ...form, timezone: tz });
+                          setTzDetected(false);
+                          setTzOpen(false);
+                        }}
+                      >
+                        <Check className={cn("mr-2 h-4 w-4", form.timezone === tz ? "opacity-100" : "opacity-0")} />
+                        {label}
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                </CommandList>
+              </Command>
+            </PopoverContent>
+          </Popover>
+          <p className="text-xs text-muted-foreground">Your posting times run in this timezone.</p>
+          {tzDetected && (
+            <p className="text-xs text-muted-foreground">Detected from your device — change it if this isn't where you post from.</p>
+          )}
         </div>
 
         <div className="space-y-1.5">
