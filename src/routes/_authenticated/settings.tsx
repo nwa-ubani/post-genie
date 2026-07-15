@@ -53,26 +53,55 @@ function Settings() {
     return `https://www.linkedin.com/in/${cleaned.replace(/^@/, "")}`;
   };
 
+  const timeRegex = /^([01]\d|2[0-3]):[0-5]\d$/;
+  const normalizeTime = (v: string): string | null => {
+    const s = v.trim();
+    if (!s) return null;
+    const m = s.match(/^(\d{1,2}):(\d{1,2})$/);
+    if (!m) return null;
+    const h = parseInt(m[1], 10);
+    const mm = parseInt(m[2], 10);
+    if (isNaN(h) || isNaN(mm) || h < 0 || h > 23 || mm < 0 || mm > 59) return null;
+    return `${String(h).padStart(2, "0")}:${String(mm).padStart(2, "0")}`;
+  };
+
+  // Derive posting_schedule from form, falling back to legacy posting_days/posting_times
+  const scheduleFromForm = (): Record<string, string[]> => {
+    const raw = form.posting_schedule as Record<string, string[]> | null | undefined;
+    if (raw && typeof raw === "object" && Object.keys(raw).length) return raw;
+    const legacyDays: number[] = form.posting_days ?? [0, 1, 2, 3, 4, 5, 6];
+    const legacyTimes: string[] = (form.posting_times?.length ? form.posting_times : (form.posting_time ? [form.posting_time] : [])) as string[];
+    const out: Record<string, string[]> = {};
+    for (const d of legacyDays) out[String(d)] = [...legacyTimes];
+    return out;
+  };
+
   const save = useMutation({
     mutationFn: async () => {
       const { user_id, created_at, updated_at, onboarding_complete, ...patch } = form;
 
-      // Validate posting days
-      const days: number[] = patch.posting_days ?? [0, 1, 2, 3, 4, 5, 6];
-      if (!days.length) throw new Error("You need at least one posting day.");
-
-      // Validate + de-dupe posting times
-      const rawTimes: string[] = (patch.posting_times?.length ? patch.posting_times : (patch.posting_time ? [patch.posting_time] : [])) as string[];
-      const timeRegex = /^([01]\d|2[0-3]):[0-5]\d$/;
-      for (const t of rawTimes) {
-        if (!timeRegex.test(t)) throw new Error(`"${t || "empty"}" isn't a valid time. Use HH:MM (24-hour).`);
+      const schedule = scheduleFromForm();
+      const cleanedSchedule: Record<string, string[]> = {};
+      for (const [day, times] of Object.entries(schedule)) {
+        const norm = (times ?? [])
+          .map(normalizeTime)
+          .filter((t): t is string => !!t);
+        const unique = Array.from(new Set(norm)).sort();
+        if (unique.length) cleanedSchedule[day] = unique;
       }
-      const uniqueTimes = Array.from(new Set(rawTimes)).sort();
-      if (!uniqueTimes.length) throw new Error("Add at least one posting time.");
+      if (!Object.keys(cleanedSchedule).length) {
+        throw new Error("Add at least one day with at least one posting time.");
+      }
+
+      // Keep legacy columns roughly in sync so old code paths still work
+      const days = Object.keys(cleanedSchedule).map(Number).sort((a, b) => a - b);
+      const allTimes = Array.from(new Set(Object.values(cleanedSchedule).flat())).sort();
 
       const cleanedPatch = {
         ...patch,
-        posting_times: uniqueTimes,
+        posting_schedule: cleanedSchedule,
+        posting_days: days,
+        posting_times: allTimes,
         posting_time: null,
         linkedin_personal_url: normalizeLinkedInProfile(patch.linkedin_personal_url ?? ""),
       };
