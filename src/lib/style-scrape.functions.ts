@@ -2,6 +2,7 @@
 
 export async function fetchStyleSamples(urls: string[] | null | undefined, maxCharsPerUrl = 2500): Promise<string[]> {
   if (!urls?.length) return [];
+  const { safeFetch } = await import("./ssrf-guard.server");
   const results = await Promise.allSettled(
     urls.slice(0, 5).map(async (raw) => {
       const url = raw.trim();
