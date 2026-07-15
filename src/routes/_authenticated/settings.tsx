@@ -66,7 +66,24 @@ function Settings() {
   });
 
   const [form, setForm] = useState<Record<string, any>>({});
-  useEffect(() => { if (profile) setForm(profile); }, [profile]);
+  const [tzDetected, setTzDetected] = useState(false);
+  const [tzOpen, setTzOpen] = useState(false);
+  useEffect(() => {
+    if (profile) {
+      const next = { ...profile } as Record<string, any>;
+      if (!next.timezone) {
+        next.timezone = getBrowserTz();
+        setTzDetected(true);
+      }
+      setForm(next);
+    }
+  }, [profile]);
+
+  const timezones = useMemo(() => getAllTimezones(), []);
+  const tzOptions = useMemo(
+    () => timezones.map((tz) => ({ tz, label: `${tz} (${getTzOffsetLabel(tz)})` })),
+    [timezones],
+  );
 
   const normalizeLinkedInProfile = (value: string) => {
     const cleaned = value.trim();
