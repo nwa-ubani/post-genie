@@ -142,6 +142,7 @@ export type Database = {
           id: string
           last_used_at: string | null
           media_type: string
+          thumb_path: string | null
           user_id: string
         }
         Insert: {
@@ -151,6 +152,7 @@ export type Database = {
           id?: string
           last_used_at?: string | null
           media_type?: string
+          thumb_path?: string | null
           user_id: string
         }
         Update: {
@@ -160,6 +162,7 @@ export type Database = {
           id?: string
           last_used_at?: string | null
           media_type?: string
+          thumb_path?: string | null
           user_id?: string
         }
         Relationships: []
@@ -240,6 +243,7 @@ export type Database = {
           onboarding_complete: boolean
           post_targets: string[] | null
           posting_days: number[] | null
+          posting_schedule: Json | null
           posting_time: string | null
           posting_times: string[]
           role: string | null
@@ -270,6 +274,7 @@ export type Database = {
           onboarding_complete?: boolean
           post_targets?: string[] | null
           posting_days?: number[] | null
+          posting_schedule?: Json | null
           posting_time?: string | null
           posting_times?: string[]
           role?: string | null
@@ -300,6 +305,7 @@ export type Database = {
           onboarding_complete?: boolean
           post_targets?: string[] | null
           posting_days?: number[] | null
+          posting_schedule?: Json | null
           posting_time?: string | null
           posting_times?: string[]
           role?: string | null
