@@ -1,8 +1,8 @@
 // Fetch role-model URLs server-side and extract plain-text samples for style grounding.
-import { safeFetch } from "./ssrf-guard.server";
 
 export async function fetchStyleSamples(urls: string[] | null | undefined, maxCharsPerUrl = 2500): Promise<string[]> {
   if (!urls?.length) return [];
+  const { safeFetch } = await import("./ssrf-guard.server");
   const results = await Promise.allSettled(
     urls.slice(0, 5).map(async (raw) => {
       const url = raw.trim();
