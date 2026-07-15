@@ -1,15 +1,39 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Check, ChevronsUpDown } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
 import { getLinkedInAuthUrl } from "@/lib/linkedin.functions";
 import { PushNotificationsCard } from "@/components/PushNotificationsCard";
+
+const getBrowserTz = () => {
+  try { return Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC"; } catch { return "UTC"; }
+};
+
+const getTzOffsetLabel = (tz: string): string => {
+  try {
+    const parts = new Intl.DateTimeFormat("en-US", { timeZone: tz, timeZoneName: "shortOffset" }).formatToParts(new Date());
+    const off = parts.find((p) => p.type === "timeZoneName")?.value ?? "";
+    return off.replace(/^GMT/, "GMT").replace(/^UTC/, "GMT") || "GMT";
+  } catch { return "GMT"; }
+};
+
+const getAllTimezones = (): string[] => {
+  try {
+    // @ts-ignore
+    const list: string[] = typeof Intl.supportedValuesOf === "function" ? Intl.supportedValuesOf("timeZone") : [];
+    return list.length ? list : ["UTC"];
+  } catch { return ["UTC"]; }
+};
 
 export const Route = createFileRoute("/_authenticated/settings")({
   head: () => ({
