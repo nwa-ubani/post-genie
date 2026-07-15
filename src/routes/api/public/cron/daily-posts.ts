@@ -123,8 +123,8 @@ export const Route = createFileRoute("/api/public/cron/daily-posts")({
             .gt("expires_at", new Date().toISOString());
 
           for (const tok of expiring ?? []) {
-            if (!tok.expires_at) continue;
-            const expiresAt = tok.expires_at as string;
+            if (!expiresAt) continue;
+            const expiresAt = expiresAt as string;
             const msLeft = new Date(expiresAt).getTime() - Date.now();
             const daysLeft = msLeft / 86400000;
             const threshold = THRESHOLDS.find((t) => daysLeft <= t);
@@ -135,7 +135,7 @@ export const Route = createFileRoute("/api/public/cron/daily-posts")({
               .select("id")
               .eq("user_id", tok.user_id)
               .eq("threshold", threshold)
-              .eq("token_expires_at", tok.expires_at)
+              .eq("token_expires_at", expiresAt)
               .maybeSingle();
             if (alreadySent) continue;
 
@@ -161,12 +161,12 @@ export const Route = createFileRoute("/api/public/cron/daily-posts")({
                   daysRemaining: Math.max(1, Math.ceil(daysLeft)),
                   reconnectUrl: "https://autopost.grownownow.com/settings",
                 },
-                idempotencyKey: `linkedin-expiry-${tok.user_id}-${threshold}-${tok.expires_at}`,
+                idempotencyKey: `linkedin-expiry-${tok.user_id}-${threshold}-${expiresAt}`,
               });
               await supabaseAdmin.from("token_expiry_emails").insert({
                 user_id: tok.user_id,
                 threshold,
-                token_expires_at: tok.expires_at,
+                token_expires_at: expiresAt,
               });
               expiryResults.push({ userId: tok.user_id, threshold, ok: true });
             } catch (e) {
