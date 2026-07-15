@@ -123,8 +123,8 @@ export const Route = createFileRoute("/api/public/cron/daily-posts")({
             .gt("expires_at", new Date().toISOString());
 
           for (const tok of expiring ?? []) {
+            const expiresAt = tok.expires_at as string | null;
             if (!expiresAt) continue;
-            const expiresAt = expiresAt as string;
             const msLeft = new Date(expiresAt).getTime() - Date.now();
             const daysLeft = msLeft / 86400000;
             const threshold = THRESHOLDS.find((t) => daysLeft <= t);
