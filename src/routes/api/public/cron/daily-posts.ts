@@ -40,27 +40,50 @@ export const Route = createFileRoute("/api/public/cron/daily-posts")({
           return postMinutes >= windowStart && postMinutes < windowEnd;
         };
 
-        // posting_days is int[] 0–6 (0 = Sunday). Null/empty = post every day.
-        const isDueToday = (postingDays: number[] | null, timezone: string): boolean => {
-          if (!postingDays?.length) return true;
+        const getLocalDayIndex = (timezone: string): number => {
           try {
             const parts = new Intl.DateTimeFormat("en-US", {
               timeZone: timezone || "UTC",
               weekday: "short",
             }).formatToParts(now);
             const weekdayName = parts.find((p) => p.type === "weekday")?.value ?? "";
-            const dayIndex = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].indexOf(weekdayName);
-            return dayIndex >= 0 && postingDays.includes(dayIndex);
+            return ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].indexOf(weekdayName);
           } catch {
-            return true;
+            return -1;
           }
         };
 
         const { data: profiles, error } = await supabaseAdmin
           .from("profiles")
-          .select("user_id, posting_time, posting_times, timezone, posting_days")
+          .select("user_id, posting_time, posting_times, timezone, posting_days, posting_schedule")
           .eq("active", true)
           .eq("onboarding_complete", true);
+
+        if (error) return new Response(JSON.stringify({ error: error.message }), { status: 500 });
+
+        const due = (profiles ?? []).filter((p: any) => {
+          const tz = p.timezone || "UTC";
+          const dayIndex = getLocalDayIndex(tz);
+
+          // Prefer per-day posting_schedule when present
+          const schedule = p.posting_schedule as Record<string, string[]> | null | undefined;
+          if (schedule && typeof schedule === "object" && Object.keys(schedule).length) {
+            if (dayIndex < 0) return false;
+            const times = schedule[String(dayIndex)] ?? [];
+            return times.some((t) => inWindow(t, tz));
+          }
+
+          // Legacy fallback
+          if (p.posting_days?.length) {
+            if (dayIndex < 0 || !p.posting_days.includes(dayIndex)) return false;
+          }
+          const list: string[] = p.posting_times?.length
+            ? p.posting_times
+            : p.posting_time
+              ? [p.posting_time]
+              : [];
+          return list.some((t) => inWindow(t, tz));
+        });
 
         if (error) return new Response(JSON.stringify({ error: error.message }), { status: 500 });
 
