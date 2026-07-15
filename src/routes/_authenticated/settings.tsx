@@ -53,26 +53,55 @@ function Settings() {
     return `https://www.linkedin.com/in/${cleaned.replace(/^@/, "")}`;
   };
 
+  const timeRegex = /^([01]\d|2[0-3]):[0-5]\d$/;
+  const normalizeTime = (v: string): string | null => {
+    const s = v.trim();
+    if (!s) return null;
+    const m = s.match(/^(\d{1,2}):(\d{1,2})$/);
+    if (!m) return null;
+    const h = parseInt(m[1], 10);
+    const mm = parseInt(m[2], 10);
+    if (isNaN(h) || isNaN(mm) || h < 0 || h > 23 || mm < 0 || mm > 59) return null;
+    return `${String(h).padStart(2, "0")}:${String(mm).padStart(2, "0")}`;
+  };
+
+  // Derive posting_schedule from form, falling back to legacy posting_days/posting_times
+  const scheduleFromForm = (): Record<string, string[]> => {
+    const raw = form.posting_schedule as Record<string, string[]> | null | undefined;
+    if (raw && typeof raw === "object" && Object.keys(raw).length) return raw;
+    const legacyDays: number[] = form.posting_days ?? [0, 1, 2, 3, 4, 5, 6];
+    const legacyTimes: string[] = (form.posting_times?.length ? form.posting_times : (form.posting_time ? [form.posting_time] : [])) as string[];
+    const out: Record<string, string[]> = {};
+    for (const d of legacyDays) out[String(d)] = [...legacyTimes];
+    return out;
+  };
+
   const save = useMutation({
     mutationFn: async () => {
       const { user_id, created_at, updated_at, onboarding_complete, ...patch } = form;
 
-      // Validate posting days
-      const days: number[] = patch.posting_days ?? [0, 1, 2, 3, 4, 5, 6];
-      if (!days.length) throw new Error("You need at least one posting day.");
-
-      // Validate + de-dupe posting times
-      const rawTimes: string[] = (patch.posting_times?.length ? patch.posting_times : (patch.posting_time ? [patch.posting_time] : [])) as string[];
-      const timeRegex = /^([01]\d|2[0-3]):[0-5]\d$/;
-      for (const t of rawTimes) {
-        if (!timeRegex.test(t)) throw new Error(`"${t || "empty"}" isn't a valid time. Use HH:MM (24-hour).`);
+      const schedule = scheduleFromForm();
+      const cleanedSchedule: Record<string, string[]> = {};
+      for (const [day, times] of Object.entries(schedule)) {
+        const norm = (times ?? [])
+          .map(normalizeTime)
+          .filter((t): t is string => !!t);
+        const unique = Array.from(new Set(norm)).sort();
+        if (unique.length) cleanedSchedule[day] = unique;
       }
-      const uniqueTimes = Array.from(new Set(rawTimes)).sort();
-      if (!uniqueTimes.length) throw new Error("Add at least one posting time.");
+      if (!Object.keys(cleanedSchedule).length) {
+        throw new Error("Add at least one day with at least one posting time.");
+      }
+
+      // Keep legacy columns roughly in sync so old code paths still work
+      const days = Object.keys(cleanedSchedule).map(Number).sort((a, b) => a - b);
+      const allTimes = Array.from(new Set(Object.values(cleanedSchedule).flat())).sort();
 
       const cleanedPatch = {
         ...patch,
-        posting_times: uniqueTimes,
+        posting_schedule: cleanedSchedule,
+        posting_days: days,
+        posting_times: allTimes,
         posting_time: null,
         linkedin_personal_url: normalizeLinkedInProfile(patch.linkedin_personal_url ?? ""),
       };
@@ -198,37 +227,62 @@ function Settings() {
         <h2 className="font-display text-xl">Schedule</h2>
 
         {(() => {
-          const days: number[] = form.posting_days ?? [0, 1, 2, 3, 4, 5, 6];
-          const rawTimes: string[] = (form.posting_times?.length ? form.posting_times : (form.posting_time ? [form.posting_time] : [])) as string[];
-          const timeRegex = /^([01]\d|2[0-3]):[0-5]\d$/;
-          const seen = new Map<string, number>();
-          const dupIdx = new Set<number>();
-          rawTimes.forEach((t, i) => {
-            if (!timeRegex.test(t)) return;
-            if (seen.has(t)) { dupIdx.add(i); dupIdx.add(seen.get(t)!); }
-            else seen.set(t, i);
-          });
-
           const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-          const validTimes = Array.from(new Set(rawTimes.filter((t) => timeRegex.test(t)))).sort();
+          const schedule = scheduleFromForm();
+          const selectedDays = Object.keys(schedule).map(Number).sort((a, b) => a - b);
 
-          // Next run preview (uses the user's browser TZ for display; server uses profile TZ)
+          const updateSchedule = (next: Record<string, string[]>) => {
+            setForm({ ...form, posting_schedule: next, posting_time: null });
+          };
+
+          const toggleDay = (idx: number) => {
+            const next = { ...schedule };
+            if (next[String(idx)]) {
+              if (selectedDays.length <= 1) {
+                toast.message("You need at least one posting day.");
+                return;
+              }
+              delete next[String(idx)];
+            } else {
+              // Seed a new day with the first selected day's times, or a sensible default
+              const seedFrom = selectedDays[0];
+              next[String(idx)] = seedFrom != null ? [...(schedule[String(seedFrom)] ?? ["09:00"])] : ["09:00"];
+            }
+            updateSchedule(next);
+          };
+
+          const setDayTimes = (day: number, times: string[]) => {
+            const next = { ...schedule, [String(day)]: times };
+            updateSchedule(next);
+          };
+
+          const copyToAllDays = () => {
+            if (!selectedDays.length) return;
+            const source = schedule[String(selectedDays[0])] ?? [];
+            const next: Record<string, string[]> = {};
+            for (const d of selectedDays) next[String(d)] = [...source];
+            updateSchedule(next);
+            toast.success("Applied to every selected day.");
+          };
+
+          // Next run preview
           let nextRunLabel: string | null = null;
-          if (days.length && validTimes.length) {
-            const now = new Date();
-            for (let offset = 0; offset < 8 && !nextRunLabel; offset++) {
-              const d = new Date(now);
-              d.setDate(now.getDate() + offset);
-              const weekday = d.getDay();
-              if (!days.includes(weekday)) continue;
-              for (const t of validTimes) {
-                const [h, m] = t.split(":").map(Number);
-                const candidate = new Date(d);
-                candidate.setHours(h, m, 0, 0);
-                if (candidate.getTime() > now.getTime()) {
-                  nextRunLabel = `${dayNames[weekday]} ${candidate.toLocaleDateString(undefined, { month: "short", day: "numeric" })} at ${candidate.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}`;
-                  break;
-                }
+          const now = new Date();
+          outer: for (let offset = 0; offset < 8; offset++) {
+            const d = new Date(now);
+            d.setDate(now.getDate() + offset);
+            const weekday = d.getDay();
+            const times = (schedule[String(weekday)] ?? [])
+              .map(normalizeTime)
+              .filter((t): t is string => !!t)
+              .sort();
+            for (const t of times) {
+              const [h, m] = t.split(":").map(Number);
+              const candidate = new Date(d);
+              candidate.setHours(h, m, 0, 0);
+              if (candidate.getTime() > now.getTime()) {
+                nextRunLabel = `${dayNames[weekday]} ${candidate.toLocaleDateString(undefined, { month: "short", day: "numeric" })} at ${candidate.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}`;
+                break outer;
               }
             }
           }
@@ -239,22 +293,12 @@ function Settings() {
                 <Label>Which days should we post?</Label>
                 <div className="flex flex-wrap gap-2">
                   {dayNames.map((label, idx) => {
-                    const active = days.includes(idx);
+                    const active = !!schedule[String(idx)];
                     return (
                       <button
                         type="button"
                         key={label}
-                        onClick={() => {
-                          if (active) {
-                            if (days.length <= 1) {
-                              toast.message("You need at least one posting day.");
-                              return;
-                            }
-                            setForm({ ...form, posting_days: days.filter((d) => d !== idx).sort() });
-                          } else {
-                            setForm({ ...form, posting_days: [...days, idx].sort() });
-                          }
-                        }}
+                        onClick={() => toggleDay(idx)}
                         className={`h-10 min-w-16 rounded-full border px-4 text-sm font-medium transition ${
                           active
                             ? "bg-primary text-primary-foreground border-primary shadow-sm"
@@ -266,91 +310,72 @@ function Settings() {
                     );
                   })}
                 </div>
-                {days.length === 0 && (
-                  <p className="text-xs text-destructive">You need at least one posting day.</p>
-                )}
               </div>
 
-              <div className="space-y-2">
-                <Label>Posting times</Label>
-                <p className="text-xs text-muted-foreground">Each time triggers a fresh, independent post. Add as many as you like.</p>
-                <div className="space-y-2">
-                  {rawTimes.map((t: string, i: number) => {
-                    const valid = timeRegex.test(t);
-                    const duplicate = dupIdx.has(i);
-                    const active = valid && !duplicate;
-                    return (
-                      <div key={i} className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <Input
-                            type="time"
-                            value={t}
-                            onChange={(e) => {
-                              const val = e.target.value;
-                              const next = [...rawTimes];
-                              next[i] = val;
-                              setForm({ ...form, posting_times: next, posting_time: null });
-                              if (val && timeRegex.test(val)) {
-                                const now = new Date();
-                                const nowMinutes = now.getHours() * 60 + now.getMinutes();
-                                const windowStart = Math.floor(nowMinutes / 15) * 15;
-                                const windowEnd = windowStart + 15;
-                                const [h, m] = val.split(":").map(Number);
-                                const picked = h * 60 + m;
-                                if (picked >= windowStart && picked < windowEnd) {
-                                  const nextH = Math.floor(windowEnd / 60) % 24;
-                                  const nextM = windowEnd % 60;
-                                  const nextLabel = `${String(nextH).padStart(2, "0")}:${String(nextM).padStart(2, "0")}`;
-                                  toast.warning(
-                                    `This time is in the current 15-minute window. Pick a time after ${nextLabel} to post tomorrow.`
-                                  );
-                                }
-                              }
-                            }}
-                            className={`max-w-40 ${
-                              duplicate || (t && !valid)
-                                ? "border-destructive bg-destructive/5"
-                                : active
-                                  ? "border-primary bg-primary/5 font-medium text-foreground"
-                                  : ""
-                            }`}
-                          />
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => {
-                              const next = rawTimes.filter((_, idx) => idx !== i);
-                              setForm({ ...form, posting_times: next, posting_time: null });
-                            }}
-                            aria-label="Remove time slot"
-                          >
-                            ×
-                          </Button>
-                        </div>
-                        {t && !valid && (
-                          <p className="text-xs text-destructive">Enter a valid time (HH:MM, 24-hour).</p>
-                        )}
-                        {duplicate && valid && (
-                          <p className="text-xs text-destructive">Duplicate time — each slot must be unique.</p>
-                        )}
+              {selectedDays.length > 1 && (
+                <Button type="button" variant="outline" size="sm" onClick={copyToAllDays}>
+                  Same times every day
+                </Button>
+              )}
+
+              <div className="space-y-3">
+                {selectedDays.map((day) => {
+                  const times = schedule[String(day)] ?? [];
+                  return (
+                    <div key={day} className="rounded-xl border bg-card p-4 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <p className="font-medium">{dayNames[day]}</p>
+                        <span className="text-xs text-muted-foreground">
+                          {times.filter((t) => timeRegex.test(t)).length} time{times.filter((t) => timeRegex.test(t)).length === 1 ? "" : "s"}
+                        </span>
                       </div>
-                    );
-                  })}
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setForm({ ...form, posting_times: [...rawTimes, "09:00"], posting_time: null });
-                    }}
-                  >
-                    + Add time
-                  </Button>
-                  {rawTimes.length === 0 && (
-                    <p className="text-xs text-destructive">Add at least one posting time.</p>
-                  )}
-                </div>
+                      <div className="space-y-2">
+                        {times.map((t, i) => (
+                          <div key={i} className="flex items-center gap-2">
+                            <Input
+                              type="time"
+                              value={t}
+                              onChange={(e) => {
+                                const next = [...times];
+                                next[i] = e.target.value;
+                                setDayTimes(day, next);
+                              }}
+                              onBlur={(e) => {
+                                const norm = normalizeTime(e.target.value);
+                                if (norm && norm !== t) {
+                                  const next = [...times];
+                                  next[i] = norm;
+                                  setDayTimes(day, next);
+                                }
+                              }}
+                              className="max-w-40"
+                            />
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => setDayTimes(day, times.filter((_, idx) => idx !== i))}
+                              aria-label="Remove time slot"
+                            >
+                              ×
+                            </Button>
+                          </div>
+                        ))}
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setDayTimes(day, [...times, ""])}
+                        >
+                          + Add time
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                })}
+                {selectedDays.length === 0 && (
+                  <p className="text-xs text-destructive">Select at least one day to post.</p>
+                )}
               </div>
 
               {nextRunLabel && (
