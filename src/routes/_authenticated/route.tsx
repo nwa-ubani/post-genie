@@ -24,7 +24,7 @@ function AuthedLayout() {
     <div className="min-h-screen">
       <header className="border-b">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-          <Link to="/dashboard" className="font-display text-lg">GrowNowNow</Link>
+          <Link to="/dashboard" className="font-display text-lg">Auto-Post</Link>
           <nav className="flex items-center gap-5 text-sm">
             <Link to="/dashboard" className="text-muted-foreground hover:text-foreground" activeProps={{ className: "text-foreground font-medium" }}>Dashboard</Link>
             <Link to="/photos" className="text-muted-foreground hover:text-foreground" activeProps={{ className: "text-foreground font-medium" }}>Media</Link>

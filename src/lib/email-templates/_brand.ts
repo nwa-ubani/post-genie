@@ -1,4 +1,4 @@
-// Shared brand tokens for GrowNowNow auth emails.
+// Shared brand tokens for Auto-Post auth emails.
 // Body background must stay #ffffff; accents use ink/paper palette.
 export const brand = {
   main: {

@@ -38,9 +38,9 @@ const getAllTimezones = (): string[] => {
 export const Route = createFileRoute("/_authenticated/settings")({
   head: () => ({
     meta: [
-      { title: "Settings — GrowNowNow" },
-      { name: "description", content: "Edit your brief, tone, posting schedule and reconnect LinkedIn for GrowNowNow's daily posting automation." },
-      { property: "og:title", content: "Settings — GrowNowNow" },
+      { title: "Settings — Auto-Post" },
+      { name: "description", content: "Edit your brief, tone, posting schedule and reconnect LinkedIn for Auto-Post's daily posting automation." },
+      { property: "og:title", content: "Settings — Auto-Post" },
       { property: "og:description", content: "Edit your brief, tone, posting schedule and reconnect LinkedIn." },
       { property: "og:url", content: "https://autopost.grownownow.com/settings" },
       { name: "robots", content: "noindex" },

@@ -5,7 +5,7 @@ const CANONICAL = "https://autopost.grownownow.com/blog/automate-linkedin-posts-
 export const Route = createFileRoute("/blog/automate-linkedin-posts-with-ai")({
   head: () => ({
     meta: [
-      { title: "How to automate LinkedIn posts with AI — GrowNowNow" },
+      { title: "How to automate LinkedIn posts with AI — Auto-Post" },
       { name: "description", content: "A practical workflow for automating LinkedIn posts with AI: live research, drafting with a real angle, and scheduling daily publishing." },
       { property: "og:title", content: "How to automate LinkedIn posts with AI" },
       { property: "og:description", content: "A practical workflow: live research, AI drafting with a real angle, and daily scheduled publishing." },
@@ -22,8 +22,8 @@ export const Route = createFileRoute("/blog/automate-linkedin-posts-with-ai")({
           headline: "How to automate LinkedIn posts with AI",
           description:
             "A practical workflow for automating LinkedIn posts with AI: live research, drafting with a real angle, and scheduling daily publishing.",
-          author: { "@type": "Organization", name: "GrowNowNow" },
-          publisher: { "@type": "Organization", name: "GrowNowNow" },
+          author: { "@type": "Organization", name: "Auto-Post" },
+          publisher: { "@type": "Organization", name: "Auto-Post" },
           mainEntityOfPage: CANONICAL,
         }),
       },
@@ -36,7 +36,7 @@ function Post() {
   return (
     <div className="min-h-screen">
       <header className="mx-auto flex max-w-3xl items-center justify-between px-6 py-6">
-        <Link to="/" className="font-display text-xl">GrowNowNow</Link>
+        <Link to="/" className="font-display text-xl">Auto-Post</Link>
         <Link to="/auth" className="text-sm text-muted-foreground hover:text-foreground">Sign in</Link>
       </header>
 
@@ -47,7 +47,7 @@ function Post() {
         </h1>
         <p className="mt-4 text-muted-foreground">
           The hard part of posting daily on LinkedIn isn't writing — it's finding something worth saying every
-          morning. Here's the workflow we use inside GrowNowNow to make AI drafts that sound like a person who
+          morning. Here's the workflow we use inside Auto-Post to make AI drafts that sound like a person who
           actually read the news.
         </p>
 
@@ -89,7 +89,7 @@ function Post() {
 
           <h2 className="mt-10 font-display text-2xl">Doing this without the busywork</h2>
           <p>
-            GrowNowNow runs the whole loop — Serper research, Gemini drafts, image rotation, LinkedIn
+            Auto-Post runs the whole loop — Serper research, Gemini drafts, image rotation, LinkedIn
             publishing — every morning at the time you choose. If you'd rather skip the plumbing,{" "}
             <Link to="/auth" className="underline">start your free build</Link>.
           </p>

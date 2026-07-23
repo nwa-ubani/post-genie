@@ -10,7 +10,7 @@ export async function fetchStyleSamples(urls: string[] | null | undefined, maxCh
       let r: Response;
       try {
         r = await safeFetch(url, {
-          headers: { "User-Agent": "Mozilla/5.0 (compatible; GrowNowNowBot/1.0)" },
+          headers: { "User-Agent": "Mozilla/5.0 (compatible; AutoPostBot/1.0)" },
           signal: AbortSignal.timeout(8000),
         });
       } catch {
