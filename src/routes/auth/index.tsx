@@ -211,6 +211,18 @@ function AuthPage() {
                 {passwordError ?? "At least 8 chars with uppercase, lowercase, number, and symbol. Avoid common or breached passwords."}
               </p>
             )}
+            {mode === "signin" && (
+              <div className="pt-1 text-right">
+                <button
+                  type="button"
+                  onClick={forgot}
+                  disabled={loading}
+                  className="text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground"
+                >
+                  Forgot password?
+                </button>
+              </div>
+            )}
           </div>
           <Button type="submit" className="w-full" disabled={loading}>
             {mode === "signup" ? "Create account" : "Sign in"}
