@@ -30,6 +30,7 @@ function AuthPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [checkEmail, setCheckEmail] = useState(false);
+  const [needsConfirm, setNeedsConfirm] = useState(false);
 
   const passwordError = mode === "signup" && password.length > 0 ? validatePassword(password) : null;
 
