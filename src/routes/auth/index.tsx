@@ -53,6 +53,12 @@ function AuthPage() {
           options: { emailRedirectTo: `${window.location.origin}/onboarding` },
         });
         if (error) throw error;
+        // Supabase returns a user with an empty identities array when the email is already registered.
+        if (data.user && data.user.identities && data.user.identities.length === 0) {
+          toast.error("An account with this email already exists. Try signing in instead.");
+          setMode("signin");
+          return;
+        }
         if (data.session) {
           toast.success("Account created. Let's set you up.");
           navigate({ to: "/onboarding" });
