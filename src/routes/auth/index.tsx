@@ -75,9 +75,44 @@ function AuthPage() {
       const msg = e instanceof Error ? e.message : "Authentication failed";
       if (/pwned|leaked|weak|compromis/i.test(msg)) {
         toast.error("That password has appeared in a known data breach. Please pick a different one.");
+      } else if (/email\s*not\s*confirmed|not\s*confirmed|confirm/i.test(msg) && mode === "signin") {
+        setNeedsConfirm(true);
+        toast.error("Please verify your email first. We can resend the link below.");
+      } else if (/invalid\s*login|invalid\s*credentials/i.test(msg) && mode === "signin") {
+        toast.error("Incorrect email or password.");
       } else {
         toast.error(msg);
       }
+    } finally { setLoading(false); }
+  };
+
+  const resendConfirmation = async () => {
+    if (!email) { toast.error("Enter your email above first."); return; }
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.resend({
+        type: "signup",
+        email,
+        options: { emailRedirectTo: `${window.location.origin}/onboarding` },
+      });
+      if (error) throw error;
+      toast.success("Verification email sent. Check your inbox.");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not resend email.");
+    } finally { setLoading(false); }
+  };
+
+  const forgot = async () => {
+    if (!email) { toast.error("Enter your email above first."); return; }
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      if (error) throw error;
+      toast.success("Password reset link sent. Check your inbox.");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not send reset email.");
     } finally { setLoading(false); }
   };
 
