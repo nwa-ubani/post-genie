@@ -1,8 +1,8 @@
-# GrowNowNow
+# Auto-Post
 
-> GrowNowNow researches your industry with live Google data and publishes daily AI-written LinkedIn posts for you, automatically.
+> Auto-Post researches your industry with live Google data and publishes daily AI-written LinkedIn posts for you, automatically.
 
-GrowNowNow is a SaaS that runs live Google research (via Serper), drafts two posts with Gemini every day — an authoritative brand post and a personal note — and publishes the personal post to LinkedIn on your schedule.
+Auto-Post is a SaaS that runs live Google research (via Serper), drafts two posts with Gemini every day — an authoritative brand post and a personal note — and publishes the personal post to LinkedIn on your schedule.
 
 ## Pages
 
