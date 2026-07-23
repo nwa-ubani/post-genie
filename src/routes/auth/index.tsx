@@ -30,6 +30,7 @@ function AuthPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [checkEmail, setCheckEmail] = useState(false);
+  const [needsConfirm, setNeedsConfirm] = useState(false);
 
   const passwordError = mode === "signup" && password.length > 0 ? validatePassword(password) : null;
 
@@ -75,9 +76,44 @@ function AuthPage() {
       const msg = e instanceof Error ? e.message : "Authentication failed";
       if (/pwned|leaked|weak|compromis/i.test(msg)) {
         toast.error("That password has appeared in a known data breach. Please pick a different one.");
+      } else if (/email\s*not\s*confirmed|not\s*confirmed|confirm/i.test(msg) && mode === "signin") {
+        setNeedsConfirm(true);
+        toast.error("Please verify your email first. We can resend the link below.");
+      } else if (/invalid\s*login|invalid\s*credentials/i.test(msg) && mode === "signin") {
+        toast.error("Incorrect email or password.");
       } else {
         toast.error(msg);
       }
+    } finally { setLoading(false); }
+  };
+
+  const resendConfirmation = async () => {
+    if (!email) { toast.error("Enter your email above first."); return; }
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.resend({
+        type: "signup",
+        email,
+        options: { emailRedirectTo: `${window.location.origin}/onboarding` },
+      });
+      if (error) throw error;
+      toast.success("Verification email sent. Check your inbox.");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not resend email.");
+    } finally { setLoading(false); }
+  };
+
+  const forgot = async () => {
+    if (!email) { toast.error("Enter your email above first."); return; }
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      if (error) throw error;
+      toast.success("Password reset link sent. Check your inbox.");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not send reset email.");
     } finally { setLoading(false); }
   };
 
@@ -92,7 +128,7 @@ function AuthPage() {
   return (
     <div className="flex min-h-screen items-center justify-center px-6">
       <div className="w-full max-w-sm">
-        <Link to="/" className="font-display text-xl">GrowNowNow</Link>
+        <Link to="/" className="font-display text-xl">Auto-Post</Link>
         <h1 className="mt-10 font-display text-3xl">
           {mode === "signup" ? "Create your account" : "Welcome back"}
         </h1>
@@ -107,6 +143,31 @@ function AuthPage() {
               We just sent a verification link to <span className="font-medium text-foreground">{email}</span>.
               Click it to activate your account and continue onboarding.
             </p>
+            <button
+              type="button"
+              onClick={resendConfirmation}
+              disabled={loading}
+              className="mt-3 text-sm font-medium underline underline-offset-2 hover:opacity-80"
+            >
+              Resend verification email
+            </button>
+          </div>
+        )}
+
+        {needsConfirm && !checkEmail && (
+          <div className="mt-6 rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm">
+            <p className="font-medium">Email not verified yet</p>
+            <p className="mt-1 text-muted-foreground">
+              Click the link we sent to <span className="font-medium text-foreground">{email}</span>, or resend it.
+            </p>
+            <button
+              type="button"
+              onClick={resendConfirmation}
+              disabled={loading}
+              className="mt-3 text-sm font-medium underline underline-offset-2 hover:opacity-80"
+            >
+              Resend verification email
+            </button>
           </div>
         )}
 
@@ -149,6 +210,18 @@ function AuthPage() {
               <p className={`text-xs ${passwordError ? "text-destructive" : "text-muted-foreground"}`}>
                 {passwordError ?? "At least 8 chars with uppercase, lowercase, number, and symbol. Avoid common or breached passwords."}
               </p>
+            )}
+            {mode === "signin" && (
+              <div className="pt-1 text-right">
+                <button
+                  type="button"
+                  onClick={forgot}
+                  disabled={loading}
+                  className="text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground"
+                >
+                  Forgot password?
+                </button>
+              </div>
             )}
           </div>
           <Button type="submit" className="w-full" disabled={loading}>
