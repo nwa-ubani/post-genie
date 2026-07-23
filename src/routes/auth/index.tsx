@@ -128,7 +128,7 @@ function AuthPage() {
   return (
     <div className="flex min-h-screen items-center justify-center px-6">
       <div className="w-full max-w-sm">
-        <Link to="/" className="font-display text-xl">GrowNowNow</Link>
+        <Link to="/" className="font-display text-xl">Auto-Post</Link>
         <h1 className="mt-10 font-display text-3xl">
           {mode === "signup" ? "Create your account" : "Welcome back"}
         </h1>
@@ -143,6 +143,31 @@ function AuthPage() {
               We just sent a verification link to <span className="font-medium text-foreground">{email}</span>.
               Click it to activate your account and continue onboarding.
             </p>
+            <button
+              type="button"
+              onClick={resendConfirmation}
+              disabled={loading}
+              className="mt-3 text-sm font-medium underline underline-offset-2 hover:opacity-80"
+            >
+              Resend verification email
+            </button>
+          </div>
+        )}
+
+        {needsConfirm && !checkEmail && (
+          <div className="mt-6 rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm">
+            <p className="font-medium">Email not verified yet</p>
+            <p className="mt-1 text-muted-foreground">
+              Click the link we sent to <span className="font-medium text-foreground">{email}</span>, or resend it.
+            </p>
+            <button
+              type="button"
+              onClick={resendConfirmation}
+              disabled={loading}
+              className="mt-3 text-sm font-medium underline underline-offset-2 hover:opacity-80"
+            >
+              Resend verification email
+            </button>
           </div>
         )}
 
